@@ -1,0 +1,10 @@
+# Personal working files — contain real portfolio data, never commit
+*.xlsx
+*.xlsm
+!template.xlsm
+
+# Personal positions (тикер,коэф,кол-во) — local only
+positions.csv
+
+# Local Claude Code settings
+.claude/
