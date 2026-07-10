@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePortfolio } from "../portfolio/PortfolioContext";
 import { HistoryLineChart } from "./HistoryLineChart";
 
@@ -13,11 +13,18 @@ export function ChartsTab() {
   }, [history]);
 
   const [selectedTicker, setSelectedTicker] = useState<string>("");
+
+  useEffect(() => {
+    if (selectedTicker && !allTickers.includes(selectedTicker)) {
+      setSelectedTicker("");
+    }
+  }, [selectedTicker, allTickers]);
+
   const effectiveTicker = selectedTicker || allTickers[0] || "";
 
   const priceData = history.map((h) => ({
     x: h.timestamp,
-    y: h.snapshot.find((row) => row.ticker === effectiveTicker)?.price ?? 0,
+    y: h.snapshot.find((row) => row.ticker === effectiveTicker)?.price ?? null,
   }));
   const valueData = history.map((h) => ({ x: h.timestamp, y: h.portfolioValue }));
   const complianceData = history.map((h) => ({ x: h.timestamp, y: h.avgCompliance ?? 0 }));

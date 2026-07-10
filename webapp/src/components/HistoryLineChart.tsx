@@ -4,7 +4,7 @@ export function HistoryLineChart({
   data,
   label,
 }: {
-  data: { x: string; y: number }[];
+  data: { x: string; y: number | null }[];
   label: string;
 }) {
   return (
@@ -16,7 +16,7 @@ export function HistoryLineChart({
           <XAxis dataKey="x" />
           <YAxis />
           <Tooltip />
-          <Line type="monotone" dataKey="y" stroke="#1a1a1a" dot={false} name={label} />
+          <Line type="monotone" dataKey="y" stroke="#1a1a1a" dot={false} name={label} connectNulls={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
