@@ -39,6 +39,7 @@ export function buildCalculatedPositions(
     return {
       ...position,
       ...live,
+      ticker: position.ticker,
       sector: resolveSector(position.ticker),
       targetAllocation,
       actualShare,

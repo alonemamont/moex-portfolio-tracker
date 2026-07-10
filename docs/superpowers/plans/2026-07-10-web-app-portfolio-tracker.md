@@ -1667,6 +1667,14 @@ describe("buildCalculatedPositions", () => {
   it("does not throw for an empty position list", () => {
     expect(buildCalculatedPositions([], new Map(), () => "Другое")).toEqual([]);
   });
+
+  it("preserves the position's original ticker casing even when liveByTicker is keyed uppercase", () => {
+    const positions: Position[] = [{ ticker: "sber", coefficient: 1, sharesOwned: 5 }];
+    const liveByTicker = new Map([["SBER", live({ ticker: "SBER", price: 300 })]]);
+
+    const [result] = buildCalculatedPositions(positions, liveByTicker, () => "Финансы");
+    expect(result.ticker).toBe("sber");
+  });
 });
 ```
 
@@ -1719,6 +1727,7 @@ export function buildCalculatedPositions(
     return {
       ...position,
       ...live,
+      ticker: position.ticker,
       sector: resolveSector(position.ticker),
       targetAllocation,
       actualShare,
@@ -1730,10 +1739,16 @@ export function buildCalculatedPositions(
 }
 ```
 
+`ticker: position.ticker` is re-asserted after both spreads: `live.ticker` is always
+uppercase-normalized (it comes from `mergeMarketData`'s `Map<string, LiveData>` keys, per
+Task 10), so without this, a user-typed lowercase ticker in `Position` would be silently
+overwritten in the returned `CalculatedPosition` — breaking Task 23's later match-by-ticker
+when saving edited `coefficient`/`sharesOwned` back to `file.positions`.
+
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd webapp && npx vitest run src/domain/buildCalculatedPositions.test.ts`
-Expected: PASS (3 tests).
+Expected: PASS (4 tests).
 
 - [ ] **Step 5: Commit**
 
