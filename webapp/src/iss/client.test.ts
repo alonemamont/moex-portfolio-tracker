@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fetchIndexComposition, fetchSecurities } from "./client";
+import { fetchIndexComposition, fetchSecurities, fetchLatestDividend, fetchDividendsForTickers } from "./client";
 
 const compositionXml = `<?xml version="1.0" encoding="UTF-8"?>
 <document>
@@ -89,5 +89,53 @@ describe("fetchSecurities", () => {
     const result = await fetchSecurities([]);
     expect(result.size).toBe(0);
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+const dividendsXml = (rows: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<document><data id="dividends"><rows>${rows}</rows></data></document>`;
+
+describe("fetchLatestDividend", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("returns the value of the row with the latest registryclosedate", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          dividendsXml(
+            `<row secid="SBER" registryclosedate="2024-07-11" value="33.3" />` +
+              `<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />` +
+              `<row secid="SBER" registryclosedate="2021-05-12" value="18.7" />`
+          ),
+          { status: 200 }
+        )
+      )
+    );
+    await expect(fetchLatestDividend("SBER")).resolves.toBe(34.84);
+  });
+
+  it("returns 0 when there is no dividend history", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(dividendsXml(""), { status: 200 })));
+    await expect(fetchLatestDividend("NEWIPO")).resolves.toBe(0);
+  });
+});
+
+describe("fetchDividendsForTickers", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("resolves 0 for a ticker whose request fails, without failing the whole batch", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/BROKEN/")) return new Response("", { status: 500 });
+        return new Response(dividendsXml(`<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />`), {
+          status: 200,
+        });
+      })
+    );
+    const result = await fetchDividendsForTickers(["SBER", "BROKEN"], 2);
+    expect(result.get("SBER")).toBe(34.84);
+    expect(result.get("BROKEN")).toBe(0);
   });
 });
