@@ -39,7 +39,7 @@ export function SectorsTab() {
           resolveSector={resolveSector}
           onClose={() => setModalOpen(false)}
           onSave={(overrides) => {
-            setFile({ ...file, sectors: overrides });
+            setFile({ ...file, sectors: { ...file.sectors, ...overrides } });
             setModalOpen(false);
           }}
         />
