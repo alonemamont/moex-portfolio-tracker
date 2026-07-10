@@ -1,0 +1,62 @@
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { runMarketUpdate } from "./runMarketUpdate";
+import * as marketDataModule from "../iss/marketData";
+import { PortfolioFile, LiveData } from "../types";
+
+afterEach(() => vi.restoreAllMocks());
+
+const baseFile: PortfolioFile = {
+  version: 1,
+  positions: [{ ticker: "GAZP", coefficient: 1, sharesOwned: 10 }],
+  sectors: {},
+  history: [],
+};
+
+describe("runMarketUpdate", () => {
+  it("merges fresh market data into positions and appends a history snapshot", async () => {
+    vi.spyOn(marketDataModule, "fetchMarketData").mockResolvedValue({
+      composition: [{ ticker: "GAZP", shortName: "ГАЗПРОМ ао", weight: 9.32 }],
+      securities: new Map([["GAZP", { shortName: "ГАЗПРОМ ао", price: 92.79, lotSize: 10 }]]),
+      dividends: new Map([["GAZP", 0]]),
+    });
+
+    const { file: updated, liveByTicker } = await runMarketUpdate(baseFile);
+
+    expect(updated.positions).toEqual(baseFile.positions);
+    expect(updated.history).toHaveLength(1);
+    expect(updated.history[0].portfolioValue).toBeCloseTo(927.9);
+    expect(updated.sectors).toEqual(baseFile.sectors);
+    expect(liveByTicker.get("GAZP")?.price).toBe(92.79);
+  });
+
+  it("propagates the underlying fetch error without mutating the file", async () => {
+    vi.spyOn(marketDataModule, "fetchMarketData").mockRejectedValue(new Error("ISS down"));
+    await expect(runMarketUpdate(baseFile)).rejects.toThrow("ISS down");
+  });
+
+  it("threads previousLiveByTicker into the merge so a ticker missing from securities keeps its last known price", async () => {
+    vi.spyOn(marketDataModule, "fetchMarketData").mockResolvedValue({
+      composition: [],
+      securities: new Map(),
+      dividends: new Map([["GAZP", 0]]),
+    });
+    const previousLiveByTicker = new Map<string, LiveData>([
+      [
+        "GAZP",
+        {
+          ticker: "GAZP",
+          shortName: "ГАЗПРОМ ао",
+          indexWeight: 0,
+          price: 92.79,
+          lotSize: 10,
+          dividendPerShare: 0,
+          status: "out_of_index",
+        },
+      ],
+    ]);
+
+    const { liveByTicker } = await runMarketUpdate(baseFile, previousLiveByTicker);
+
+    expect(liveByTicker.get("GAZP")?.price).toBe(92.79);
+  });
+});
