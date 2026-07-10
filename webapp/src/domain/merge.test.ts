@@ -63,4 +63,31 @@ describe("mergeMarketData", () => {
     expect(second.positions).toHaveLength(1);
     expect(second.positions[0]).toEqual({ ticker: "sber", coefficient: 1, sharesOwned: 5 });
   });
+
+  it("falls back to the previous known price when a ticker is entirely absent from securities (fully delisted)", () => {
+    const previousLiveByTicker = new Map([
+      [
+        "DELISTED",
+        {
+          ticker: "DELISTED",
+          shortName: "Делистнутая",
+          indexWeight: 0,
+          price: 42,
+          lotSize: 1,
+          dividendPerShare: 0,
+          status: "out_of_index" as const,
+        },
+      ],
+    ]);
+    const result = mergeMarketData(
+      [{ ticker: "DELISTED", coefficient: 1, sharesOwned: 5 }],
+      [],
+      new Map(),
+      new Map([["DELISTED", 0]]),
+      previousLiveByTicker
+    );
+    const live = result.liveByTicker.get("DELISTED")!;
+    expect(live.price).toBe(42);
+    expect(live.status).toBe("out_of_index");
+  });
 });

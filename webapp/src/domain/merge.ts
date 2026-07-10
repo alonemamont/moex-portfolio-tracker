@@ -10,7 +10,8 @@ export function mergeMarketData(
   existingPositions: Position[],
   composition: IndexCompositionEntry[],
   securities: Map<string, SecurityInfo>,
-  dividends: Map<string, number>
+  dividends: Map<string, number>,
+  previousLiveByTicker: Map<string, LiveData> = new Map()
 ): MergeResult {
   const compositionByTicker = new Map(composition.map((c) => [c.ticker.toUpperCase(), c]));
 
@@ -27,7 +28,7 @@ export function mergeMarketData(
       ticker,
       shortName: sec?.shortName ?? comp?.shortName ?? ticker,
       indexWeight: comp ? comp.weight : 0,
-      price: sec?.price ?? null,
+      price: sec?.price ?? previousLiveByTicker.get(ticker)?.price ?? null,
       lotSize: sec?.lotSize ?? null,
       dividendPerShare: dividends.get(ticker) ?? 0,
       status,

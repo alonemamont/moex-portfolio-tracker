@@ -1082,7 +1082,7 @@ git commit -m "feat: orchestrate ISS market data fetch with all-or-nothing seman
 
 **Interfaces:**
 - Consumes: `Position`, `LiveData`, `IndexStatus` from `webapp/src/types.ts` (Task 3); `IndexCompositionEntry`, `SecurityInfo` from `webapp/src/iss/client.ts` (Tasks 6-7).
-- Produces: `mergeMarketData(existingPositions: Position[], composition: IndexCompositionEntry[], securities: Map<string, SecurityInfo>, dividends: Map<string, number>): MergeResult` and type `MergeResult { positions: Position[]; liveByTicker: Map<string, LiveData> }` — used by Task 13's `buildCalculatedPositions` and Task 23's update flow.
+- Produces: `mergeMarketData(existingPositions: Position[], composition: IndexCompositionEntry[], securities: Map<string, SecurityInfo>, dividends: Map<string, number>, previousLiveByTicker?: Map<string, LiveData>): MergeResult` and type `MergeResult { positions: Position[]; liveByTicker: Map<string, LiveData> }` — used by Task 14's `buildCalculatedPositions` and Task 23's update flow. The optional 5th parameter (default: empty map) carries the in-memory live data from before this update, so a ticker entirely absent from `securities` (fully delisted — no row at all, not merely dropped from the index) keeps its last known price instead of going to `null`, per the functional spec's "цена не обновляется, остаётся последнее известное значение" rule.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1153,6 +1153,33 @@ describe("mergeMarketData", () => {
     expect(second.positions).toHaveLength(1);
     expect(second.positions[0]).toEqual({ ticker: "sber", coefficient: 1, sharesOwned: 5 });
   });
+
+  it("falls back to the previous known price when a ticker is entirely absent from securities (fully delisted)", () => {
+    const previousLiveByTicker = new Map([
+      [
+        "DELISTED",
+        {
+          ticker: "DELISTED",
+          shortName: "Делистнутая",
+          indexWeight: 0,
+          price: 42,
+          lotSize: 1,
+          dividendPerShare: 0,
+          status: "out_of_index" as const,
+        },
+      ],
+    ]);
+    const result = mergeMarketData(
+      [{ ticker: "DELISTED", coefficient: 1, sharesOwned: 5 }],
+      [],
+      new Map(),
+      new Map([["DELISTED", 0]]),
+      previousLiveByTicker
+    );
+    const live = result.liveByTicker.get("DELISTED")!;
+    expect(live.price).toBe(42);
+    expect(live.status).toBe("out_of_index");
+  });
 });
 ```
 
@@ -1176,7 +1203,8 @@ export function mergeMarketData(
   existingPositions: Position[],
   composition: IndexCompositionEntry[],
   securities: Map<string, SecurityInfo>,
-  dividends: Map<string, number>
+  dividends: Map<string, number>,
+  previousLiveByTicker: Map<string, LiveData> = new Map()
 ): MergeResult {
   const compositionByTicker = new Map(composition.map((c) => [c.ticker.toUpperCase(), c]));
 
@@ -1193,7 +1221,7 @@ export function mergeMarketData(
       ticker,
       shortName: sec?.shortName ?? comp?.shortName ?? ticker,
       indexWeight: comp ? comp.weight : 0,
-      price: sec?.price ?? null,
+      price: sec?.price ?? previousLiveByTicker.get(ticker)?.price ?? null,
       lotSize: sec?.lotSize ?? null,
       dividendPerShare: dividends.get(ticker) ?? 0,
       status,
@@ -1215,7 +1243,7 @@ export function mergeMarketData(
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd webapp && npx vitest run src/domain/merge.test.ts`
-Expected: PASS (4 tests).
+Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -2515,19 +2543,23 @@ git commit -m "feat: add fixed-width error panel with word-wrapped messages"
 
 **Interfaces:**
 - Consumes: `ErrorProvider`, `useErrors` (Task 20); `ErrorPanel` (Task 21); `PortfolioFile` (Task 3); `createEmptyPortfolio` (Task 16); `loadViaFileSystemAccess`, `loadViaInputFile`, `isFileSystemAccessSupported` (Task 17); `saveViaFileSystemAccess`, `saveViaFileSystemAccessNew`, `downloadPortfolioFile` (Task 18).
-- Produces: `PortfolioProvider`, `usePortfolio(): { file: PortfolioFile | null; setFile: (f: PortfolioFile) => void; fileHandle: FileSystemFileHandle | null; setFileHandle: (h: FileSystemFileHandle | null) => void }` — used by Tasks 23-27 (all tabs). `App` default export now renders the full shell (tabs + header + error panel), replacing Task 1's placeholder.
+- Produces: `PortfolioProvider`, `usePortfolio(): { file: PortfolioFile | null; setFile: (f: PortfolioFile) => void; fileHandle: FileSystemFileHandle | null; setFileHandle: (h: FileSystemFileHandle | null) => void; liveByTicker: Map<string, LiveData>; setLiveByTicker: (m: Map<string, LiveData>) => void }` — used by Tasks 23-27 (all tabs). `App` default export now renders the full shell (tabs + header + error panel), replacing Task 1's placeholder.
+
+`liveByTicker` holds the in-memory result of the most recent market-data merge for the current session (never persisted to the file — live data is always recomputed from ISS, per design §2). Task 23's `runMarketUpdate` reads it before an update (as `mergeMarketData`'s Task 10 `previousLiveByTicker` fallback, so a ticker that's gone fully missing from `securities` keeps its last known price instead of `null`) and writes the new result back after.
 
 - [ ] **Step 1: Write `webapp/src/portfolio/PortfolioContext.tsx`**
 
 ```tsx
 import React, { createContext, useContext, useState } from "react";
-import { PortfolioFile } from "../types";
+import { PortfolioFile, LiveData } from "../types";
 
 interface PortfolioContextValue {
   file: PortfolioFile | null;
   setFile: (file: PortfolioFile) => void;
   fileHandle: FileSystemFileHandle | null;
   setFileHandle: (handle: FileSystemFileHandle | null) => void;
+  liveByTicker: Map<string, LiveData>;
+  setLiveByTicker: (liveByTicker: Map<string, LiveData>) => void;
 }
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null);
@@ -2535,9 +2567,12 @@ const PortfolioContext = createContext<PortfolioContextValue | null>(null);
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [file, setFile] = useState<PortfolioFile | null>(null);
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [liveByTicker, setLiveByTicker] = useState<Map<string, LiveData>>(new Map());
 
   return (
-    <PortfolioContext.Provider value={{ file, setFile, fileHandle, setFileHandle }}>
+    <PortfolioContext.Provider
+      value={{ file, setFile, fileHandle, setFileHandle, liveByTicker, setLiveByTicker }}
+    >
       {children}
     </PortfolioContext.Provider>
   );
@@ -2802,7 +2837,7 @@ git commit -m "feat: add app shell with tabs, header, and file load/save wiring"
 
 **Interfaces:**
 - Consumes: `usePortfolio` (Task 22), `useErrors` (Task 20), `fetchMarketData` (Task 9), `mergeMarketData` (Task 10), `buildCalculatedPositions` (Task 14), `createSectorResolver`, `SECTORS_DEFAULT` (Task 13), `createHistorySnapshot` (Task 19), `CalculatedPosition`, `PortfolioFile` (Task 3).
-- Produces: `runMarketUpdate(currentFile: PortfolioFile): Promise<PortfolioFile>` (pure orchestration, throws on all-or-nothing failure) — used by `PortfolioTab` here and reused for the auto-update-on-load flow in Task 28. `PortfolioTab` and `PositionsTable` React components — used by `App.tsx` (Task 22).
+- Produces: `runMarketUpdate(currentFile: PortfolioFile, previousLiveByTicker?: Map<string, LiveData>): Promise<{ file: PortfolioFile; liveByTicker: Map<string, LiveData> }>` (pure orchestration, throws on all-or-nothing failure) — used by `PortfolioTab` here and reused for the auto-update-on-load flow in Task 28. Returns the new `liveByTicker` alongside the updated file so the caller (Task 22's `PortfolioContext`) can retain it across renders and pass it back in as `previousLiveByTicker` on the next call — this is what lets a ticker fully missing from ISS `securities` keep its last known price (Task 10's fallback) instead of going blank. `PortfolioTab` and `PositionsTable` React components — used by `App.tsx` (Task 22).
 
 - [ ] **Step 1: Write the failing test for the pure update orchestrator**
 
@@ -2811,7 +2846,7 @@ git commit -m "feat: add app shell with tabs, header, and file load/save wiring"
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { runMarketUpdate } from "./runMarketUpdate";
 import * as marketDataModule from "../iss/marketData";
-import { PortfolioFile } from "../types";
+import { PortfolioFile, LiveData } from "../types";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -2830,17 +2865,44 @@ describe("runMarketUpdate", () => {
       dividends: new Map([["GAZP", 0]]),
     });
 
-    const updated = await runMarketUpdate(baseFile);
+    const { file: updated, liveByTicker } = await runMarketUpdate(baseFile);
 
     expect(updated.positions).toEqual(baseFile.positions);
     expect(updated.history).toHaveLength(1);
     expect(updated.history[0].portfolioValue).toBeCloseTo(927.9);
     expect(updated.sectors).toEqual(baseFile.sectors);
+    expect(liveByTicker.get("GAZP")?.price).toBe(92.79);
   });
 
   it("propagates the underlying fetch error without mutating the file", async () => {
     vi.spyOn(marketDataModule, "fetchMarketData").mockRejectedValue(new Error("ISS down"));
     await expect(runMarketUpdate(baseFile)).rejects.toThrow("ISS down");
+  });
+
+  it("threads previousLiveByTicker into the merge so a ticker missing from securities keeps its last known price", async () => {
+    vi.spyOn(marketDataModule, "fetchMarketData").mockResolvedValue({
+      composition: [],
+      securities: new Map(),
+      dividends: new Map([["GAZP", 0]]),
+    });
+    const previousLiveByTicker = new Map<string, LiveData>([
+      [
+        "GAZP",
+        {
+          ticker: "GAZP",
+          shortName: "ГАЗПРОМ ао",
+          indexWeight: 0,
+          price: 92.79,
+          lotSize: 10,
+          dividendPerShare: 0,
+          status: "out_of_index",
+        },
+      ],
+    ]);
+
+    const { liveByTicker } = await runMarketUpdate(baseFile, previousLiveByTicker);
+
+    expect(liveByTicker.get("GAZP")?.price).toBe(92.79);
   });
 });
 ```
@@ -2853,7 +2915,7 @@ Expected: FAIL — module not found.
 - [ ] **Step 3: Write `webapp/src/portfolio/runMarketUpdate.ts`**
 
 ```typescript
-import { PortfolioFile } from "../types";
+import { PortfolioFile, LiveData } from "../types";
 import { fetchMarketData } from "../iss/marketData";
 import { mergeMarketData } from "../domain/merge";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
@@ -2861,7 +2923,10 @@ import { createSectorResolver } from "../domain/sectors";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
 import { createHistorySnapshot } from "../domain/createHistorySnapshot";
 
-export async function runMarketUpdate(currentFile: PortfolioFile): Promise<PortfolioFile> {
+export async function runMarketUpdate(
+  currentFile: PortfolioFile,
+  previousLiveByTicker: Map<string, LiveData> = new Map()
+): Promise<{ file: PortfolioFile; liveByTicker: Map<string, LiveData> }> {
   const existingTickers = currentFile.positions.map((p) => p.ticker);
   const marketData = await fetchMarketData(existingTickers);
 
@@ -2869,7 +2934,8 @@ export async function runMarketUpdate(currentFile: PortfolioFile): Promise<Portf
     currentFile.positions,
     marketData.composition,
     marketData.securities,
-    marketData.dividends
+    marketData.dividends,
+    previousLiveByTicker
   );
 
   const resolveSector = createSectorResolver(SECTORS_DEFAULT, currentFile.sectors);
@@ -2878,9 +2944,12 @@ export async function runMarketUpdate(currentFile: PortfolioFile): Promise<Portf
   const snapshot = createHistorySnapshot(calculated, portfolioValue);
 
   return {
-    ...currentFile,
-    positions,
-    history: [...currentFile.history, snapshot],
+    file: {
+      ...currentFile,
+      positions,
+      history: [...currentFile.history, snapshot],
+    },
+    liveByTicker,
   };
 }
 ```
@@ -2888,7 +2957,7 @@ export async function runMarketUpdate(currentFile: PortfolioFile): Promise<Portf
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd webapp && npx vitest run src/portfolio/runMarketUpdate.test.ts`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit the pure orchestrator**
 
@@ -2986,13 +3055,12 @@ import { runMarketUpdate } from "../portfolio/runMarketUpdate";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
 import { createSectorResolver } from "../domain/sectors";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
-import { mergeMarketData } from "../domain/merge";
 import { PositionsTable } from "./PositionsTable";
 
 const SOURCE = "update";
 
 export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number }) {
-  const { file, setFile } = usePortfolio();
+  const { file, setFile, liveByTicker, setLiveByTicker } = usePortfolio();
   const { addError, clearBySource } = useErrors();
   const [isUpdating, setIsUpdating] = useState(false);
   const lastAutoSignal = useRef(0);
@@ -3002,8 +3070,12 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     setIsUpdating(true);
     clearBySource(SOURCE);
     try {
-      const updated = await runMarketUpdate(file);
+      const { file: updated, liveByTicker: newLiveByTicker } = await runMarketUpdate(
+        file,
+        liveByTicker
+      );
       setFile(updated);
+      setLiveByTicker(newLiveByTicker);
     } catch (error) {
       addError(SOURCE, `Не удалось обновить рыночные данные: ${(error as Error).message}`);
     } finally {
@@ -3021,12 +3093,15 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
 
   const calculated = useMemo(() => {
     if (!file) return [];
-    // Without live data yet (before first update), render with empty live-data map
-    // so the table has rows immediately after "Начать с пустого портфеля"/load.
-    const { liveByTicker } = mergeMarketData(file.positions, [], new Map(), new Map());
+    // liveByTicker starts empty (before the first update); buildCalculatedPositions
+    // already falls back to sensible defaults (out_of_index/null price) per-ticker
+    // when an entry is missing, so no separate empty-merge step is needed here.
+    // After an update, this is the real merged data (see handleUpdate above), kept
+    // in PortfolioContext so it survives re-renders and feeds the next update's
+    // previousLiveByTicker fallback (Task 10).
     const resolveSector = createSectorResolver(SECTORS_DEFAULT, file.sectors);
     return buildCalculatedPositions(file.positions, liveByTicker, resolveSector);
-  }, [file]);
+  }, [file, liveByTicker]);
 
   if (!file) return null;
 
@@ -3273,7 +3348,7 @@ git commit -m "feat: add sector distribution donut chart"
 - Create: `webapp/src/components/SectorOverrideModal.tsx`
 
 **Interfaces:**
-- Consumes: `usePortfolio` (Task 22), `SectorDonutChart` (Task 26), `buildCalculatedPositions` (Task 14), `createSectorResolver`, `SECTORS_DEFAULT` (Task 13), `mergeMarketData` (Task 10).
+- Consumes: `usePortfolio` (Task 22, including its `liveByTicker` state), `SectorDonutChart` (Task 26), `buildCalculatedPositions` (Task 14), `createSectorResolver`, `SECTORS_DEFAULT` (Task 13).
 - Produces: `SectorsTab`, `SectorOverrideModal` React components — used by `App.tsx` (Task 22).
 
 - [ ] **Step 1: Write `webapp/src/components/SectorOverrideModal.tsx`**
@@ -3349,10 +3424,9 @@ import { SectorOverrideModal } from "./SectorOverrideModal";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
 import { createSectorResolver } from "../domain/sectors";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
-import { mergeMarketData } from "../domain/merge";
 
 export function SectorsTab() {
-  const { file, setFile } = usePortfolio();
+  const { file, setFile, liveByTicker } = usePortfolio();
   const [modalOpen, setModalOpen] = useState(false);
 
   const resolveSector = useMemo(
@@ -3362,9 +3436,12 @@ export function SectorsTab() {
 
   const calculated = useMemo(() => {
     if (!file) return [];
-    const { liveByTicker } = mergeMarketData(file.positions, [], new Map(), new Map());
+    // liveByTicker comes from PortfolioContext (Task 22) — the same real merged
+    // data Task 23's Portfolio tab uses, so the donut chart reflects actual
+    // position values instead of always showing zero (there is no fresh fetch
+    // here; this tab only reads the already-merged live state from context).
     return buildCalculatedPositions(file.positions, liveByTicker, resolveSector);
-  }, [file, resolveSector]);
+  }, [file, liveByTicker, resolveSector]);
 
   if (!file) return null;
 
