@@ -4,6 +4,17 @@ function formatNumber(value: number | null, digits = 2): string {
   return value === null ? "—" : value.toFixed(digits);
 }
 
+function headerWithHint(label: string, hint: string) {
+  return (
+    <>
+      {label}
+      <span className="th-hint" data-tooltip={hint} tabIndex={0}>
+        ?
+      </span>
+    </>
+  );
+}
+
 export function PositionsTable({
   positions,
   onChangeCoefficient,
@@ -25,13 +36,13 @@ export function PositionsTable({
           <th>Сектор</th>
           <th>Дивиденд</th>
           <th>Статус</th>
-          <th>Коэф-т</th>
+          <th>{headerWithHint("Коэф-т", "Множитель к весу в индексе при расчёте целевой доли")}</th>
           <th>Куплено</th>
-          <th>Цель</th>
-          <th>Факт. доля</th>
-          <th>Соответствие</th>
+          <th>{headerWithHint("Цель", "Целевая доля = вес в индексе × коэффициент")}</th>
+          <th>{headerWithHint("Факт. доля", "Текущая доля позиции в стоимости портфеля, %")}</th>
+          <th>{headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}</th>
           <th>Стоимость</th>
-          <th>Доход</th>
+          <th>{headerWithHint("Доход", "Дивиденд на акцию × количество акций")}</th>
         </tr>
       </thead>
       <tbody>
