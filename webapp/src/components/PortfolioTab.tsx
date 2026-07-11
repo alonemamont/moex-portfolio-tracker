@@ -5,6 +5,13 @@ import { runMarketUpdate } from "../portfolio/runMarketUpdate";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
 import { createSectorResolver } from "../domain/sectors";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
+import { filterPositions } from "../portfolio/filterPositions";
+import {
+  loadSearchPref,
+  saveSearchPref,
+  loadHideEmptyPref,
+  saveHideEmptyPref,
+} from "../portfolio/tablePrefs";
 import { PositionsTable } from "./PositionsTable";
 
 const SOURCE = "update";
@@ -14,6 +21,17 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const { addError, clearBySource } = useErrors();
   const [isUpdating, setIsUpdating] = useState(false);
   const lastAutoSignal = useRef(0);
+
+  const [search, setSearch] = useState(() => loadSearchPref());
+  const [hideEmpty, setHideEmpty] = useState(() => loadHideEmptyPref());
+
+  useEffect(() => {
+    saveSearchPref(search);
+  }, [search]);
+
+  useEffect(() => {
+    saveHideEmptyPref(hideEmpty);
+  }, [hideEmpty]);
 
   async function handleUpdate() {
     if (!file) return;
@@ -53,6 +71,11 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     return buildCalculatedPositions(file.positions, liveByTicker, resolveSector);
   }, [file, liveByTicker]);
 
+  const filteredPositions = useMemo(
+    () => filterPositions(calculated, search, hideEmpty),
+    [calculated, search, hideEmpty]
+  );
+
   if (!file) return null;
 
   const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
@@ -74,8 +97,24 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       <button type="button" onClick={handleUpdate} disabled={isUpdating}>
         {isUpdating ? "Обновление…" : "Обновить"}
       </button>
+      <div className="controls-row">
+        <input
+          type="text"
+          placeholder="Поиск по тикеру или названию"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <label>
+          <input
+            type="checkbox"
+            checked={hideEmpty}
+            onChange={(e) => setHideEmpty(e.target.checked)}
+          />
+          Скрывать пустые позиции
+        </label>
+      </div>
       <PositionsTable
-        positions={calculated}
+        positions={filteredPositions}
         onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
         onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
       />
