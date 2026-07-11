@@ -1,14 +1,6 @@
-import React, { createContext, useCallback, useContext, useReducer } from "react";
-import { errorReducer, initialErrorState, AppError } from "./errorReducer";
-
-interface ErrorContextValue {
-  errors: AppError[];
-  addError: (source: string, message: string) => void;
-  clearError: (id: string) => void;
-  clearBySource: (source: string) => void;
-}
-
-const ErrorContext = createContext<ErrorContextValue | null>(null);
+import React, { useCallback, useReducer } from "react";
+import { errorReducer, initialErrorState } from "./errorReducer";
+import { ErrorContext } from "./useErrors";
 
 export function ErrorProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(errorReducer, initialErrorState);
@@ -28,10 +20,4 @@ export function ErrorProvider({ children }: { children: React.ReactNode }) {
       {children}
     </ErrorContext.Provider>
   );
-}
-
-export function useErrors(): ErrorContextValue {
-  const ctx = useContext(ErrorContext);
-  if (!ctx) throw new Error("useErrors must be used within an ErrorProvider");
-  return ctx;
 }

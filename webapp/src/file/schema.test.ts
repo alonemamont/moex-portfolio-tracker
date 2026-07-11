@@ -30,7 +30,8 @@ describe("parsePortfolioFile", () => {
   });
 
   it("rejects a file missing the positions field", () => {
-    const { positions, ...rest } = valid;
+    const rest: Record<string, unknown> = { ...valid };
+    delete rest.positions;
     expect(() => parsePortfolioFile(rest)).toThrow(/positions/);
   });
 

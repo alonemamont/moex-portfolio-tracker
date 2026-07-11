@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import { usePortfolio } from "../portfolio/PortfolioContext";
-import { useErrors } from "../errors/ErrorContext";
+import { usePortfolio } from "../portfolio/usePortfolio";
+import { useErrors } from "../errors/useErrors";
 import { createEmptyPortfolio } from "../file/createEmptyPortfolio";
 import {
   isFileSystemAccessSupported,

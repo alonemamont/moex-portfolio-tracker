@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { usePortfolio } from "../portfolio/PortfolioContext";
+import { usePortfolio } from "../portfolio/usePortfolio";
 import { SectorDonutChart } from "./SectorDonutChart";
 import { SectorOverrideModal } from "./SectorOverrideModal";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";

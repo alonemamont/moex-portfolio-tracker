@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState } from "react";
-import { usePortfolio } from "../portfolio/PortfolioContext";
-import { useErrors } from "../errors/ErrorContext";
+import { usePortfolio } from "../portfolio/usePortfolio";
+import { useErrors } from "../errors/useErrors";
 import { runMarketUpdate } from "../portfolio/runMarketUpdate";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
 import { createSectorResolver } from "../domain/sectors";
@@ -54,7 +54,12 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   useEffect(() => {
     if (autoUpdateSignal !== lastAutoSignal.current) {
       lastAutoSignal.current = autoUpdateSignal;
-      if (autoUpdateSignal > 0) void handleUpdate();
+      if (autoUpdateSignal > 0) {
+        // Defer to a macrotask so handleUpdate's setState calls don't run
+        // synchronously within this effect (avoids cascading renders).
+        const timer = setTimeout(() => void handleUpdate(), 0);
+        return () => clearTimeout(timer);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoUpdateSignal]);

@@ -16,7 +16,9 @@ function makeFile(content: string): File {
 
 describe("isFileSystemAccessSupported", () => {
   it("reflects whether window.showOpenFilePicker exists", () => {
-    expect(isFileSystemAccessSupported()).toBe(typeof (window as any).showOpenFilePicker === "function");
+    expect(isFileSystemAccessSupported()).toBe(
+      typeof (window as unknown as { showOpenFilePicker?: unknown }).showOpenFilePicker === "function"
+    );
   });
 });
 
