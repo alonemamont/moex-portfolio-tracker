@@ -1,4 +1,4 @@
-import { useErrors } from "./ErrorContext";
+import { useErrors } from "./useErrors";
 import "./ErrorPanel.css";
 
 export function ErrorPanel() {

@@ -1,8 +1,14 @@
 import { PortfolioFile } from "../types";
 import { parsePortfolioFile, PortfolioFileValidationError } from "./schema";
 
+interface FileSystemAccessWindow extends Window {
+  showOpenFilePicker(options?: {
+    types?: { description: string; accept: Record<string, string[]> }[];
+  }): Promise<FileSystemFileHandle[]>;
+}
+
 export function isFileSystemAccessSupported(): boolean {
-  return typeof (window as any).showOpenFilePicker === "function";
+  return typeof (window as unknown as FileSystemAccessWindow).showOpenFilePicker === "function";
 }
 
 async function fileToText(file: File): Promise<string> {
@@ -42,7 +48,7 @@ export async function loadViaFileSystemAccess(): Promise<{
   file: PortfolioFile;
   handle: FileSystemFileHandle;
 }> {
-  const [handle] = await (window as any).showOpenFilePicker({
+  const [handle] = await (window as unknown as FileSystemAccessWindow).showOpenFilePicker({
     types: [{ description: "Portfolio JSON", accept: { "application/json": [".json"] } }],
   });
   const fileObject: File = await handle.getFile();

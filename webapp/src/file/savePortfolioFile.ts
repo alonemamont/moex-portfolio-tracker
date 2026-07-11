@@ -1,5 +1,12 @@
 import { PortfolioFile } from "../types";
 
+interface FileSystemAccessSaveWindow extends Window {
+  showSaveFilePicker(options?: {
+    suggestedName?: string;
+    types?: { description: string; accept: Record<string, string[]> }[];
+  }): Promise<FileSystemFileHandle>;
+}
+
 function serialize(file: PortfolioFile): string {
   return JSON.stringify(file, null, 2);
 }
@@ -8,13 +15,13 @@ export async function saveViaFileSystemAccess(
   file: PortfolioFile,
   handle: FileSystemFileHandle
 ): Promise<void> {
-  const writable = await (handle as any).createWritable();
+  const writable = await handle.createWritable();
   await writable.write(serialize(file));
   await writable.close();
 }
 
 export async function saveViaFileSystemAccessNew(file: PortfolioFile): Promise<FileSystemFileHandle> {
-  const handle = await (window as any).showSaveFilePicker({
+  const handle = await (window as unknown as FileSystemAccessSaveWindow).showSaveFilePicker({
     suggestedName: "portfolio.json",
     types: [{ description: "Portfolio JSON", accept: { "application/json": [".json"] } }],
   });

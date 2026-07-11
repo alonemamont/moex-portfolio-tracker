@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ErrorProvider } from "./errors/ErrorContext";
 import { ErrorPanel } from "./errors/ErrorPanel";
-import { PortfolioProvider, usePortfolio } from "./portfolio/PortfolioContext";
+import { PortfolioProvider } from "./portfolio/PortfolioContext";
+import { usePortfolio } from "./portfolio/usePortfolio";
 import { Header } from "./components/Header";
 import { PortfolioTab } from "./components/PortfolioTab";
 import { ChartsTab } from "./components/ChartsTab";
