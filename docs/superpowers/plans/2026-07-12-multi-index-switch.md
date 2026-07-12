@@ -691,8 +691,10 @@ git commit -m "feat: add selectedIndex and shared isUpdating to PortfolioContext
 - Modify: `webapp/src/components/PortfolioTab.tsx`
 
 **Interfaces:**
-- Consumes: `selectedIndex`, `isUpdating`, `setIsUpdating` from `usePortfolio()` (Task 6); `runMarketUpdate(file, previousLiveByTicker, indexId)` (Task 4).
+- Consumes: `selectedIndex`, `isUpdating`, `setIsUpdating` from `usePortfolio()` (Task 6); `runMarketUpdate(file, previousLiveByTicker, indexId)` (Task 4); `computeAverageCompliance(compliances: (number | null)[]): number | null` (pre-existing, `../domain/calculations`).
 - Produces: no new exports — `PortfolioTab` behavior only.
+
+**Context:** `avgCompliance` currently reads `file.history[file.history.length - 1].avgCompliance` — the last *written* snapshot. `switchIndex` (Task 4) never appends a snapshot, so after a switch the table rows show the new index's weights/status while this summary figure would still show the old index's number from the last "Обновить". Fix: compute it live from `calculated` instead, same as `portfolioValue` already does two lines above it. This also means the summary now tracks live `coefficient`/`sharesOwned` edits, not just the last snapshot — that's the intended behavior going forward, not a side effect to work around.
 
 - [ ] **Step 1: Update the component**
 
@@ -737,21 +739,42 @@ Then update `handleUpdate` (lines 36-52) to pass `selectedIndex` through:
   }
 ```
 
-- [ ] **Step 2: Typecheck**
+- [ ] **Step 2: Compute `avgCompliance` live instead of from the last history snapshot**
+
+Add the import (top of file, alongside the other `../domain/*` imports):
+
+```ts
+import { computeAverageCompliance } from "../domain/calculations";
+```
+
+Replace lines 87-88:
+
+```ts
+  const avgCompliance =
+    file.history.length > 0 ? file.history[file.history.length - 1].avgCompliance : null;
+```
+
+with:
+
+```ts
+  const avgCompliance = computeAverageCompliance(calculated.map((p) => p.compliance));
+```
+
+- [ ] **Step 3: Typecheck**
 
 Run: `npx tsc -p tsconfig.json --noEmit`
 Expected: no errors.
 
-- [ ] **Step 3: Run the full test suite (regression check — PortfolioTab has no dedicated test file, but this confirms nothing else broke)**
+- [ ] **Step 4: Run the full test suite (regression check — PortfolioTab has no dedicated test file, but this confirms nothing else broke)**
 
 Run: `npx vitest run`
 Expected: all existing tests PASS.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add webapp/src/components/PortfolioTab.tsx
-git commit -m "feat: PortfolioTab reads selectedIndex/isUpdating from PortfolioContext"
+git commit -m "feat: PortfolioTab reads selectedIndex/isUpdating from PortfolioContext, computes avgCompliance live"
 ```
 
 ---
@@ -885,6 +908,7 @@ Check:
 - Switching back to IMOEX restores IMOEX weights.
 - Reload the page: the last-selected index is still shown (localStorage persistence).
 - Turn off network (devtools offline) and switch index: an error appears via the existing error panel, selection reverts to the previous index, no crash.
+- "Среднее соответствие" summary updates immediately on switch (Task 7 Step 2) — it should match the newly-switched index's rows, not a stale IMOEX-era number.
 
 - [ ] **Step 7: Commit**
 
@@ -897,6 +921,7 @@ git commit -m "feat: index switcher in Header wired to switchIndex"
 
 ## Self-Review Notes
 
-- **Spec coverage:** index list (Task 1) · parameterized composition fetch (Task 2) · `fetchMarketData` threading (Task 3) · `runMarketUpdate`/`switchIndex` split, no history on switch (Task 4) · localStorage persistence, not in `portfolio.json` (Task 5) · `selectedIndex`/`isUpdating` in context (Task 6) · `PortfolioTab` uses shared state (Task 7) · Header `<select>`, auto-fetch on change, error handling that reverts selection (Task 8). RTSI exclusion and schema-unchanged constraints are called out in Global Constraints. All spec sections have a matching task.
+- **Spec coverage:** index list (Task 1) · parameterized composition fetch (Task 2) · `fetchMarketData` threading (Task 3) · `runMarketUpdate`/`switchIndex` split, no history on switch (Task 4) · localStorage persistence, not in `portfolio.json` (Task 5) · `selectedIndex`/`isUpdating` in context (Task 6) · `PortfolioTab` uses shared state, live `avgCompliance` recompute (Task 7) · Header `<select>`, auto-fetch on change, error handling that reverts selection (Task 8). RTSI exclusion and schema-unchanged constraints are called out in Global Constraints. All spec sections have a matching task.
+- **Pre-flight fix:** the plan originally left `avgCompliance` reading the last `file.history` snapshot, which would go stale relative to the table after a `switchIndex` call (no snapshot appended). Fixed in Task 7 Step 2 by computing it live via `computeAverageCompliance(calculated.map(p => p.compliance))`, same pattern as the adjacent `portfolioValue` line. Confirmed with the user: acceptable that this also makes the summary track live `coefficient`/`sharesOwned` edits rather than only the last snapshot. A second finding (`isUpdating` not guarded inside `handleUpdate`/`handleIndexChange`, only via `disabled`) was raised and explicitly waived by the user — `autoUpdateSignal` fires once on file load, not on a timer, so the race window is negligible.
 - **Placeholder scan:** no TBD/TODO; every step has literal code or an exact command with expected output.
 - **Type consistency:** `runMarketUpdate`/`switchIndex` signatures match between Task 4 (producer) and Tasks 7/8 (consumers); `PortfolioContextValue` fields added in Task 6 match the destructuring used in Tasks 7/8; `IndexOption`/`INDEX_OPTIONS`/`DEFAULT_INDEX_ID` names match between Task 1 (producer) and Tasks 4/6/8 (consumers).
