@@ -354,7 +354,7 @@ input[type="checkbox"] {
   font-family: var(--font-mono);
 }
 
-.positions-table td:first-child {
+.positions-table td:nth-child(2) {
   font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: 0.02em;

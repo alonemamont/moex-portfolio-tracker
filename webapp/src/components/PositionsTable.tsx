@@ -1,4 +1,4 @@
-import { CalculatedPosition, STATUS_LABELS } from "../types";
+import { CalculatedPosition } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
 
 function formatNumber(value: number | null, digits = 2): string {
@@ -30,15 +30,14 @@ export function PositionsTable({
       <table className="positions-table">
         <thead>
           <tr>
+            <th></th>
             <th>Тикер</th>
             <th>Название</th>
             <th className="num">Вес в индексе, %</th>
             <th className="num">Цена</th>
             <th className="num">Лотность</th>
-            <th>Сектор</th>
             <th className="num">Дивиденд</th>
             <th className="num">Див доходность, %</th>
-            <th>Статус</th>
             <th className="num">{headerWithHint("Коэф-т", "Множитель к весу в индексе при расчёте целевой доли")}</th>
             <th className="num">Куплено</th>
             <th className="num">{headerWithHint("Акций купить", "Целое число акций до целевой доли; минус — продать")}</th>
@@ -48,24 +47,22 @@ export function PositionsTable({
             <th className="num">{headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}</th>
             <th className="num">Стоимость</th>
             <th className="num">{headerWithHint("Доход", "Дивиденд на акцию × количество акций")}</th>
+            <th>Сектор</th>
           </tr>
         </thead>
         <tbody>
           {positions.map((p) => (
             <tr key={p.ticker}>
+              <td>
+                <span className={`status-dot${p.status === "in_index" ? " status-dot--in" : ""}`} />
+              </td>
               <td>{p.ticker}</td>
               <td>{p.shortName}</td>
               <td className="num">{formatNumber(p.indexWeight)}</td>
               <td className="num">{formatNumber(p.price)}</td>
               <td className="num">{p.lotSize ?? "—"}</td>
-              <td>{p.sector}</td>
               <td className="num">{formatNumber(p.dividendPerShare)}</td>
               <td className="num">{formatNumber(p.dividendYield)}</td>
-              <td>
-                <span className={`status-dot${p.status === "in_index" ? " status-dot--in" : ""}`}>
-                  {STATUS_LABELS[p.status]}
-                </span>
-              </td>
               <td className="num td-editable">
                 <input
                   type="number"
@@ -91,6 +88,7 @@ export function PositionsTable({
               </td>
               <td className="num">{formatNumber(p.positionValue)}</td>
               <td className="num">{formatNumber(p.income)}</td>
+              <td>{p.sector}</td>
             </tr>
           ))}
         </tbody>
