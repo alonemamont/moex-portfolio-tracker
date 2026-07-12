@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { createEmptyPortfolio } from "./createEmptyPortfolio";
 import * as client from "../iss/client";
+import { DEFAULT_INDEX_ID } from "../domain/indices";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -20,5 +21,15 @@ describe("createEmptyPortfolio", () => {
     ]);
     expect(file.sectors).toEqual({});
     expect(file.history).toEqual([]);
+  });
+
+  it("calls fetchIndexComposition with DEFAULT_INDEX_ID", async () => {
+    const compositionSpy = vi.spyOn(client, "fetchIndexComposition").mockResolvedValue([
+      { ticker: "GAZP", shortName: "ГАЗПРОМ ао", weight: 9.32 },
+    ]);
+
+    await createEmptyPortfolio();
+
+    expect(compositionSpy).toHaveBeenCalledWith(DEFAULT_INDEX_ID);
   });
 });
