@@ -1,0 +1,70 @@
+import { describe, it, expect } from "vitest";
+import { computeCalculatedPositionsResult } from "./useCalculatedPositions";
+import { LiveData, PortfolioFile } from "../types";
+
+function live(overrides: Partial<LiveData> & { ticker: string }): LiveData {
+  return {
+    shortName: overrides.ticker,
+    indexWeight: 0,
+    price: null,
+    lotSize: null,
+    dividendPerShare: 0,
+    status: "in_index",
+    ...overrides,
+  };
+}
+
+function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
+  return { version: 1, positions: [], sectors: {}, history: [], ...overrides };
+}
+
+describe("computeCalculatedPositionsResult", () => {
+  it("returns empty defaults when there is no file", () => {
+    expect(computeCalculatedPositionsResult(null, new Map())).toEqual({
+      calculated: [],
+      portfolioValue: 0,
+      avgCompliance: null,
+    });
+  });
+
+  it("computes portfolioValue and avgCompliance from the calculated positions", () => {
+    const f = file({
+      positions: [
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 10 },
+        { ticker: "SBER", coefficient: 2, sharesOwned: 5 },
+      ],
+    });
+    const liveByTicker = new Map([
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 60, price: 100 })],
+      ["SBER", live({ ticker: "SBER", indexWeight: 40, price: 40 })],
+    ]);
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.calculated).toHaveLength(2);
+    expect(result.portfolioValue).toBe(1200); // 10*100 + 5*40
+    expect(result.avgCompliance).not.toBeNull();
+  });
+
+  it("gives a null avgCompliance when every position is out of index", () => {
+    const f = file({ positions: [{ ticker: "OLD", coefficient: 1, sharesOwned: 3 }] });
+    const liveByTicker = new Map([
+      ["OLD", live({ ticker: "OLD", status: "out_of_index", price: 50 })],
+    ]);
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+    expect(result.avgCompliance).toBeNull();
+    expect(result.portfolioValue).toBe(150);
+  });
+
+  it("resolves sectors via file.sectors overrides falling back to defaults", () => {
+    const f = file({
+      positions: [{ ticker: "GAZP", coefficient: 1, sharesOwned: 1 }],
+      sectors: { GAZP: "Своё" },
+    });
+    const liveByTicker = new Map([["GAZP", live({ ticker: "GAZP" })]]);
+
+    const [result] = computeCalculatedPositionsResult(f, liveByTicker).calculated;
+    expect(result.sector).toBe("Своё");
+  });
+});
