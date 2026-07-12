@@ -82,7 +82,10 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
 
   return (
     <header className="header">
-      <h1>Портфель-трекер IMOEX</h1>
+      <h1 className="header__title">
+        <span className="header__brand">IMOEX</span>
+        Портфель-трекер
+      </h1>
       <div className="header__actions">
         <button type="button" onClick={handleLoadClick}>
           Загрузить файл

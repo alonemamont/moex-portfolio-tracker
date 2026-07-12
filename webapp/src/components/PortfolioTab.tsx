@@ -124,8 +124,10 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
       />
       <div className="portfolio-summary">
-        <span>Общая стоимость: {portfolioValue.toFixed(2)}</span>
-        <span>Среднее соответствие: {avgCompliance === null ? "—" : avgCompliance.toFixed(2)}</span>
+        <span data-label="Общая стоимость">{portfolioValue.toFixed(2)}</span>
+        <span data-label="Среднее соответствие">
+          {avgCompliance === null ? "—" : avgCompliance.toFixed(2)}
+        </span>
       </div>
     </div>
   );

@@ -25,12 +25,12 @@ export function ChartsTab() {
   const complianceData = history.map((h) => ({ x: h.timestamp, y: h.avgCompliance ?? 0 }));
 
   if (history.length === 0) {
-    return <p>История пуста — данные появятся после первого обновления.</p>;
+    return <p className="empty-state">История пуста — данные появятся после первого обновления.</p>;
   }
 
   return (
     <div className="charts-tab">
-      <div>
+      <div className="charts-tab__controls">
         <label htmlFor="ticker-select">Тикер:</label>
         <select
           id="ticker-select"
