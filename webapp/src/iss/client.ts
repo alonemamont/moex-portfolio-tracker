@@ -9,8 +9,8 @@ export interface IndexCompositionEntry {
   weight: number;
 }
 
-export async function fetchIndexComposition(): Promise<IndexCompositionEntry[]> {
-  const url = `${ISS_BASE}/statistics/engines/stock/markets/index/analytics/IMOEX.xml?limit=100`;
+export async function fetchIndexComposition(indexId: string): Promise<IndexCompositionEntry[]> {
+  const url = `${ISS_BASE}/statistics/engines/stock/markets/index/analytics/${indexId}.xml?limit=100`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`ISS composition request failed: ${response.status}`);

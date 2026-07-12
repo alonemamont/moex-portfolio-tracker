@@ -27,11 +27,22 @@ describe("fetchIndexComposition", () => {
   });
 
   it("parses ticker/shortName/weight from the analytics data block", async () => {
-    const result = await fetchIndexComposition();
+    const result = await fetchIndexComposition("IMOEX");
     expect(result).toEqual([
       { ticker: "GAZP", shortName: "ГАЗПРОМ ао", weight: 9.32 },
       { ticker: "SBER", shortName: "Сбербанк", weight: 5.1 },
     ]);
+  });
+
+  it("requests the given indexId's analytics endpoint", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        expect(url).toContain("/analytics/MOEXBC.xml");
+        return new Response(compositionXml, { status: 200 });
+      })
+    );
+    await fetchIndexComposition("MOEXBC");
   });
 
   it("throws when the response is not ok", async () => {
@@ -39,7 +50,7 @@ describe("fetchIndexComposition", () => {
       "fetch",
       vi.fn(async () => new Response("", { status: 500 }))
     );
-    await expect(fetchIndexComposition()).rejects.toThrow(/composition request failed/);
+    await expect(fetchIndexComposition("IMOEX")).rejects.toThrow(/composition request failed/);
   });
 });
 
