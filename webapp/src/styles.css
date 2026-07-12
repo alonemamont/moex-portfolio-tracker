@@ -8,6 +8,7 @@
   --muted: #8891a0;
   --accent: #35d0c0;
   --accent-dim: rgba(53, 208, 192, 0.14);
+  --editable-bg: rgba(53, 208, 192, 0.08);
   --up: #34c77b;
   --warn: #e8b339;
   --down: #f2555f;
@@ -371,6 +372,10 @@ input[type="checkbox"] {
 
 .positions-table input[type="number"]:focus {
   border-bottom-color: var(--accent);
+}
+
+.positions-table td.td-editable {
+  background: var(--editable-bg);
 }
 
 .th-hint {
