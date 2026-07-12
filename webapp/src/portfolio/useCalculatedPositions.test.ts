@@ -24,6 +24,8 @@ describe("computeCalculatedPositionsResult", () => {
       calculated: [],
       portfolioValue: 0,
       avgCompliance: null,
+      largestSurplus: null,
+      largestShortfall: null,
     });
   });
 
@@ -66,5 +68,26 @@ describe("computeCalculatedPositionsResult", () => {
 
     const [result] = computeCalculatedPositionsResult(f, liveByTicker).calculated;
     expect(result.sector).toBe("Своё");
+  });
+
+  it("computes largestSurplus and largestShortfall from actual-vs-target deviation", () => {
+    const f = file({
+      positions: [
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 10 },
+        { ticker: "SBER", coefficient: 1, sharesOwned: 1 },
+      ],
+    });
+    const liveByTicker = new Map([
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 90, price: 100 })],
+      ["SBER", live({ ticker: "SBER", indexWeight: 10, price: 100 })],
+    ]);
+    // portfolioValue = 1000 + 100 = 1100
+    // GAZP: actualShare ≈ 90.9%, target 90% -> small surplus
+    // SBER: actualShare ≈ 9.1%, target 10% -> small shortfall
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.largestSurplus?.ticker).toBe("GAZP");
+    expect(result.largestShortfall?.ticker).toBe("SBER");
   });
 });

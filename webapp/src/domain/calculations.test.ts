@@ -7,6 +7,8 @@ import {
   computeActualShare,
   computeCompliance,
   computeAverageCompliance,
+  computeDeviationRub,
+  findDeviationExtremes,
 } from "./calculations";
 
 describe("computeTargetAllocation", () => {
@@ -87,5 +89,50 @@ describe("computeAverageCompliance", () => {
   it("returns null when every value is null or the list is empty", () => {
     expect(computeAverageCompliance([null, null])).toBeNull();
     expect(computeAverageCompliance([])).toBeNull();
+  });
+});
+
+describe("computeDeviationRub", () => {
+  it("expresses the actual-vs-target share gap in roubles", () => {
+    // (15% - 10%) * 1000 / 100 = 50
+    expect(computeDeviationRub(15, 10, 1000)).toBeCloseTo(50);
+  });
+
+  it("is negative when actual share is below target (shortfall)", () => {
+    expect(computeDeviationRub(5, 10, 1000)).toBeCloseTo(-50);
+  });
+
+  it("returns null when actualShare is null", () => {
+    expect(computeDeviationRub(null, 10, 1000)).toBeNull();
+  });
+
+  it("returns null when targetAllocation is null (out-of-index position)", () => {
+    expect(computeDeviationRub(15, null, 1000)).toBeNull();
+  });
+});
+
+describe("findDeviationExtremes", () => {
+  it("picks the max as largestSurplus and the min as largestShortfall", () => {
+    const deviations = [
+      { ticker: "A", deviationRub: 50 },
+      { ticker: "B", deviationRub: -80 },
+      { ticker: "C", deviationRub: 20 },
+    ];
+    expect(findDeviationExtremes(deviations)).toEqual({
+      largestSurplus: { ticker: "A", deviationRub: 50 },
+      largestShortfall: { ticker: "B", deviationRub: -80 },
+    });
+  });
+
+  it("returns the same single entry for both when there is only one", () => {
+    const deviations = [{ ticker: "A", deviationRub: 10 }];
+    expect(findDeviationExtremes(deviations)).toEqual({
+      largestSurplus: { ticker: "A", deviationRub: 10 },
+      largestShortfall: { ticker: "A", deviationRub: 10 },
+    });
+  });
+
+  it("returns null for both when the list is empty", () => {
+    expect(findDeviationExtremes([])).toEqual({ largestSurplus: null, largestShortfall: null });
   });
 });

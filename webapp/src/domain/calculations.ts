@@ -41,3 +41,32 @@ export function computeAverageCompliance(compliances: (number | null)[]): number
   if (valid.length === 0) return null;
   return valid.reduce((sum, c) => sum + c, 0) / valid.length;
 }
+
+export function computeDeviationRub(
+  actualShare: number | null,
+  targetAllocation: number | null,
+  portfolioValue: number
+): number | null {
+  if (actualShare === null || targetAllocation === null) return null;
+  return ((actualShare - targetAllocation) * portfolioValue) / 100;
+}
+
+export interface DeviationEntry {
+  ticker: string;
+  deviationRub: number;
+}
+
+export function findDeviationExtremes(deviations: DeviationEntry[]): {
+  largestSurplus: DeviationEntry | null;
+  largestShortfall: DeviationEntry | null;
+} {
+  if (deviations.length === 0) return { largestSurplus: null, largestShortfall: null };
+
+  let largestSurplus = deviations[0];
+  let largestShortfall = deviations[0];
+  for (const entry of deviations) {
+    if (entry.deviationRub > largestSurplus.deviationRub) largestSurplus = entry;
+    if (entry.deviationRub < largestShortfall.deviationRub) largestShortfall = entry;
+  }
+  return { largestSurplus, largestShortfall };
+}
