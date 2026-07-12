@@ -59,4 +59,18 @@ describe("runMarketUpdate", () => {
 
     expect(liveByTicker.get("GAZP")?.price).toBe(92.79);
   });
+
+  it("forwards the given indexId to fetchMarketData, defaulting to IMOEX", async () => {
+    const fetchSpy = vi.spyOn(marketDataModule, "fetchMarketData").mockResolvedValue({
+      composition: [],
+      securities: new Map(),
+      dividends: new Map(),
+    });
+
+    await runMarketUpdate(baseFile);
+    expect(fetchSpy).toHaveBeenLastCalledWith(["GAZP"], "IMOEX");
+
+    await runMarketUpdate(baseFile, new Map(), "MOEXBC");
+    expect(fetchSpy).toHaveBeenLastCalledWith(["GAZP"], "MOEXBC");
+  });
 });
