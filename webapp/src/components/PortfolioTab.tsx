@@ -4,6 +4,7 @@ import { useErrors } from "../errors/useErrors";
 import { runMarketUpdate } from "../portfolio/runMarketUpdate";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
 import { createSectorResolver } from "../domain/sectors";
+import { computeAverageCompliance } from "../domain/calculations";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
 import { filterPositions } from "../portfolio/filterPositions";
 import {
@@ -17,9 +18,9 @@ import { PositionsTable } from "./PositionsTable";
 const SOURCE = "update";
 
 export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number }) {
-  const { file, setFile, liveByTicker, setLiveByTicker } = usePortfolio();
+  const { file, setFile, liveByTicker, setLiveByTicker, selectedIndex, isUpdating, setIsUpdating } =
+    usePortfolio();
   const { addError, clearBySource } = useErrors();
-  const [isUpdating, setIsUpdating] = useState(false);
   const lastAutoSignal = useRef(0);
 
   const [search, setSearch] = useState(() => loadSearchPref());
@@ -40,7 +41,8 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     try {
       const { file: updated, liveByTicker: newLiveByTicker } = await runMarketUpdate(
         file,
-        liveByTicker
+        liveByTicker,
+        selectedIndex
       );
       setFile(updated);
       setLiveByTicker(newLiveByTicker);
@@ -84,8 +86,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   if (!file) return null;
 
   const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
-  const avgCompliance =
-    file.history.length > 0 ? file.history[file.history.length - 1].avgCompliance : null;
+  const avgCompliance = computeAverageCompliance(calculated.map((p) => p.compliance));
 
   function updateField(ticker: string, field: "coefficient" | "sharesOwned", value: number) {
     if (!file) return;
