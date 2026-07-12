@@ -8,6 +8,10 @@ export interface PortfolioContextValue {
   setFileHandle: (handle: FileSystemFileHandle | null) => void;
   liveByTicker: Map<string, LiveData>;
   setLiveByTicker: (liveByTicker: Map<string, LiveData>) => void;
+  selectedIndex: string;
+  setSelectedIndex: (indexId: string) => void;
+  isUpdating: boolean;
+  setIsUpdating: (isUpdating: boolean) => void;
 }
 
 export const PortfolioContext = createContext<PortfolioContextValue | null>(null);
