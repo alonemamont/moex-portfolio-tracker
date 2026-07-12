@@ -12,8 +12,11 @@ export interface MarketDataResult {
   dividends: Map<string, number>;
 }
 
-export async function fetchMarketData(existingTickers: string[]): Promise<MarketDataResult> {
-  const composition = await fetchIndexComposition();
+export async function fetchMarketData(
+  existingTickers: string[],
+  indexId: string
+): Promise<MarketDataResult> {
+  const composition = await fetchIndexComposition(indexId);
 
   const allTickers = Array.from(
     new Set([...existingTickers, ...composition.map((c) => c.ticker)])

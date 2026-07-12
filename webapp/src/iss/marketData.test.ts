@@ -7,7 +7,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("fetchMarketData", () => {
   it("unions existing portfolio tickers with the fresh index composition before fetching securities/dividends", async () => {
-    vi.spyOn(client, "fetchIndexComposition").mockResolvedValue([
+    const compositionSpy = vi.spyOn(client, "fetchIndexComposition").mockResolvedValue([
       { ticker: "GAZP", shortName: "ГАЗПРОМ ао", weight: 9.32 },
     ]);
     const securitiesSpy = vi
@@ -17,18 +17,29 @@ describe("fetchMarketData", () => {
       .spyOn(client, "fetchDividendsForTickers")
       .mockResolvedValue(new Map([["GAZP", 0]]));
 
-    const result = await fetchMarketData(["DELISTED"]);
+    const result = await fetchMarketData(["DELISTED"], "IMOEX");
 
+    expect(compositionSpy).toHaveBeenCalledWith("IMOEX");
     expect(securitiesSpy).toHaveBeenCalledWith(expect.arrayContaining(["GAZP", "DELISTED"]));
     expect(dividendsSpy).toHaveBeenCalledWith(expect.arrayContaining(["GAZP", "DELISTED"]));
     expect(result.composition).toHaveLength(1);
+  });
+
+  it("forwards the given indexId to fetchIndexComposition", async () => {
+    const compositionSpy = vi.spyOn(client, "fetchIndexComposition").mockResolvedValue([]);
+    vi.spyOn(client, "fetchSecurities").mockResolvedValue(new Map());
+    vi.spyOn(client, "fetchDividendsForTickers").mockResolvedValue(new Map());
+
+    await fetchMarketData([], "MOEXBC");
+
+    expect(compositionSpy).toHaveBeenCalledWith("MOEXBC");
   });
 
   it("propagates a composition failure without calling securities/dividends", async () => {
     vi.spyOn(client, "fetchIndexComposition").mockRejectedValue(new Error("network down"));
     const securitiesSpy = vi.spyOn(client, "fetchSecurities");
 
-    await expect(fetchMarketData([])).rejects.toThrow("network down");
+    await expect(fetchMarketData([], "IMOEX")).rejects.toThrow("network down");
     expect(securitiesSpy).not.toHaveBeenCalled();
   });
 
@@ -37,6 +48,6 @@ describe("fetchMarketData", () => {
     vi.spyOn(client, "fetchSecurities").mockRejectedValue(new Error("securities down"));
     vi.spyOn(client, "fetchDividendsForTickers").mockResolvedValue(new Map());
 
-    await expect(fetchMarketData([])).rejects.toThrow("securities down");
+    await expect(fetchMarketData([], "IMOEX")).rejects.toThrow("securities down");
   });
 });
