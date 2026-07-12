@@ -31,6 +31,7 @@ export interface CalculatedPosition extends Position, LiveData {
   compliance: number | null;
   positionValue: number;
   income: number;
+  dividendYield: number | null;
 }
 
 export interface HistorySnapshotRow {

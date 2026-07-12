@@ -9,6 +9,7 @@ import {
   computeAverageCompliance,
   computeDeviationRub,
   findDeviationExtremes,
+  computeDividendYield,
 } from "./calculations";
 
 describe("computeTargetAllocation", () => {
@@ -134,5 +135,23 @@ describe("findDeviationExtremes", () => {
 
   it("returns null for both when the list is empty", () => {
     expect(findDeviationExtremes([])).toEqual({ largestSurplus: null, largestShortfall: null });
+  });
+});
+
+describe("computeDividendYield", () => {
+  it("expresses dividend per share as a percentage of price", () => {
+    expect(computeDividendYield(2, 40)).toBeCloseTo(5);
+  });
+
+  it("returns null when price is 0", () => {
+    expect(computeDividendYield(2, 0)).toBeNull();
+  });
+
+  it("returns null when price is null (no live price)", () => {
+    expect(computeDividendYield(2, null)).toBeNull();
+  });
+
+  it("is 0 (not null) when there is no dividend but price is valid", () => {
+    expect(computeDividendYield(0, 40)).toBe(0);
   });
 });

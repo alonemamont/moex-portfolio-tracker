@@ -19,6 +19,7 @@ function makePosition(overrides: Partial<CalculatedPosition>): CalculatedPositio
     compliance: 1,
     positionValue: 0,
     income: 0,
+    dividendYield: null,
     ...overrides,
   };
 }

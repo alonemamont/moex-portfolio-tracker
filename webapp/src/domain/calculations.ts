@@ -70,3 +70,8 @@ export function findDeviationExtremes(deviations: DeviationEntry[]): {
   }
   return { largestSurplus, largestShortfall };
 }
+
+export function computeDividendYield(dividendPerShare: number, price: number | null): number | null {
+  if (price === null || price === 0) return null;
+  return (dividendPerShare / price) * 100;
+}

@@ -5,6 +5,7 @@ import {
   computeIncome,
   computeActualShare,
   computeCompliance,
+  computeDividendYield,
 } from "./calculations";
 
 export function buildCalculatedPositions(
@@ -35,6 +36,7 @@ export function buildCalculatedPositions(
     const actualShare = computeActualShare(positionValue, portfolioValue);
     const compliance = computeCompliance(actualShare, targetAllocation);
     const income = computeIncome(live.dividendPerShare, position.sharesOwned);
+    const dividendYield = computeDividendYield(live.dividendPerShare, live.price);
 
     return {
       ...position,
@@ -46,6 +48,7 @@ export function buildCalculatedPositions(
       compliance,
       positionValue,
       income,
+      dividendYield,
     };
   });
 }

@@ -61,4 +61,20 @@ describe("buildCalculatedPositions", () => {
     const [result] = buildCalculatedPositions(positions, liveByTicker, () => "Финансы");
     expect(result.ticker).toBe("sber");
   });
+
+  it("computes dividendYield as dividendPerShare / price * 100, null when price is missing or 0", () => {
+    const positions: Position[] = [
+      { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
+      { ticker: "NOPRICE", coefficient: 1, sharesOwned: 1 },
+    ];
+    const liveByTicker = new Map([
+      ["GAZP", live({ ticker: "GAZP", price: 40, dividendPerShare: 2 })],
+      ["NOPRICE", live({ ticker: "NOPRICE", price: null, dividendPerShare: 5 })],
+    ]);
+
+    const result = buildCalculatedPositions(positions, liveByTicker, () => "Другое");
+
+    expect(result.find((p) => p.ticker === "GAZP")!.dividendYield).toBeCloseTo(5);
+    expect(result.find((p) => p.ticker === "NOPRICE")!.dividendYield).toBeNull();
+  });
 });
