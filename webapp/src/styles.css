@@ -329,6 +329,7 @@ input[type="checkbox"] {
 
 .table-scroll {
   overflow-x: auto;
+  overflow-y: visible;
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
@@ -373,6 +374,7 @@ input[type="checkbox"] {
 }
 
 .th-hint {
+  position: relative;
   display: inline-block;
   margin-left: 4px;
   width: 13px;
