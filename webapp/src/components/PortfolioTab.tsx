@@ -2,10 +2,7 @@ import { useMemo, useEffect, useRef, useState } from "react";
 import { usePortfolio } from "../portfolio/usePortfolio";
 import { useErrors } from "../errors/useErrors";
 import { runMarketUpdate } from "../portfolio/runMarketUpdate";
-import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
-import { createSectorResolver } from "../domain/sectors";
-import { computeAverageCompliance } from "../domain/calculations";
-import { SECTORS_DEFAULT } from "../data/sectorsDefault";
+import { useCalculatedPositions } from "../portfolio/useCalculatedPositions";
 import { filterPositions } from "../portfolio/filterPositions";
 import {
   loadSearchPref,
@@ -14,6 +11,8 @@ import {
   saveHideEmptyPref,
 } from "../portfolio/tablePrefs";
 import { PositionsTable } from "./PositionsTable";
+import { AddTickerModal } from "./AddTickerModal";
+import { PortfolioFile } from "../types";
 
 const SOURCE = "update";
 
@@ -25,6 +24,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
 
   const [search, setSearch] = useState(() => loadSearchPref());
   const [hideEmpty, setHideEmpty] = useState(() => loadHideEmptyPref());
+  const [showAddTicker, setShowAddTicker] = useState(false);
 
   useEffect(() => {
     saveSearchPref(search);
@@ -34,13 +34,14 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     saveHideEmptyPref(hideEmpty);
   }, [hideEmpty]);
 
-  async function handleUpdate() {
-    if (!file) return;
+  async function handleUpdate(fileOverride?: PortfolioFile) {
+    const target = fileOverride ?? file;
+    if (!target) return;
     setIsUpdating(true);
     clearBySource(SOURCE);
     try {
       const { file: updated, liveByTicker: newLiveByTicker } = await runMarketUpdate(
-        file,
+        target,
         liveByTicker,
         selectedIndex
       );
@@ -57,26 +58,13 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     if (autoUpdateSignal !== lastAutoSignal.current) {
       lastAutoSignal.current = autoUpdateSignal;
       if (autoUpdateSignal > 0) {
-        // Defer to a macrotask so handleUpdate's setState calls don't run
-        // synchronously within this effect (avoids cascading renders).
-        const timer = setTimeout(() => void handleUpdate(), 0);
-        return () => clearTimeout(timer);
+        void handleUpdate();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoUpdateSignal]);
 
-  const calculated = useMemo(() => {
-    if (!file) return [];
-    // liveByTicker starts empty (before the first update); buildCalculatedPositions
-    // already falls back to sensible defaults (out_of_index/null price) per-ticker
-    // when an entry is missing, so no separate empty-merge step is needed here.
-    // After an update, this is the real merged data (see handleUpdate above), kept
-    // in PortfolioContext so it survives re-renders and feeds the next update's
-    // previousLiveByTicker fallback (Task 10).
-    const resolveSector = createSectorResolver(SECTORS_DEFAULT, file.sectors);
-    return buildCalculatedPositions(file.positions, liveByTicker, resolveSector);
-  }, [file, liveByTicker]);
+  const { calculated } = useCalculatedPositions();
 
   const filteredPositions = useMemo(
     () => filterPositions(calculated, search, hideEmpty),
@@ -84,9 +72,6 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   );
 
   if (!file) return null;
-
-  const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
-  const avgCompliance = computeAverageCompliance(calculated.map((p) => p.compliance));
 
   function updateField(ticker: string, field: "coefficient" | "sharesOwned", value: number) {
     if (!file) return;
@@ -98,11 +83,27 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     });
   }
 
+  function handleAddTicker(ticker: string, sharesOwned: number) {
+    if (!file) return;
+    const updated: PortfolioFile = {
+      ...file,
+      positions: [...file.positions, { ticker, coefficient: 1, sharesOwned }],
+    };
+    setFile(updated);
+    setShowAddTicker(false);
+    void handleUpdate(updated);
+  }
+
   return (
     <div className="portfolio-tab">
-      <button type="button" onClick={handleUpdate} disabled={isUpdating}>
-        {isUpdating ? "Обновление…" : "Обновить"}
-      </button>
+      <div className="action-row">
+        <button type="button" onClick={() => handleUpdate()} disabled={isUpdating}>
+          {isUpdating ? "Обновление…" : "Обновить"}
+        </button>
+        <button type="button" onClick={() => setShowAddTicker(true)} disabled={isUpdating}>
+          + Тикер
+        </button>
+      </div>
       <div className="controls-row">
         <input
           type="text"
@@ -124,12 +125,13 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
         onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
       />
-      <div className="portfolio-summary">
-        <span data-label="Общая стоимость">{portfolioValue.toFixed(2)}</span>
-        <span data-label="Среднее соответствие">
-          {avgCompliance === null ? "—" : avgCompliance.toFixed(2)}
-        </span>
-      </div>
+      {showAddTicker && (
+        <AddTickerModal
+          existingPositions={file.positions}
+          onConfirm={handleAddTicker}
+          onClose={() => setShowAddTicker(false)}
+        />
+      )}
     </div>
   );
 }

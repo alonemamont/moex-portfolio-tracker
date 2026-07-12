@@ -256,6 +256,18 @@ input[type="checkbox"] {
   margin-top: 14px;
 }
 
+.add-ticker__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.add-ticker__status {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 /* Toolbar row (search / filters) */
 
 .controls-row {
@@ -282,7 +294,9 @@ input[type="checkbox"] {
   color: var(--muted);
 }
 
-.portfolio-tab > button {
+.action-row {
+  display: flex;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -460,12 +474,12 @@ input[type="checkbox"] {
   box-shadow: 0 0 0 2px var(--panel);
 }
 
-/* Portfolio summary bar */
+/* Dashboard bar (always-visible totals, under the header) */
 
-.portfolio-summary {
+.dashboard {
   display: flex;
   gap: 28px;
-  margin-top: 12px;
+  margin: 12px 20px 0;
   padding: 12px 14px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -474,13 +488,13 @@ input[type="checkbox"] {
   font-size: 0.95rem;
 }
 
-.portfolio-summary span {
+.dashboard span {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.portfolio-summary span::before {
+.dashboard span::before {
   content: attr(data-label);
   font-family: var(--font-body);
   font-size: 0.68rem;

@@ -4,6 +4,7 @@ import { ErrorPanel } from "./errors/ErrorPanel";
 import { PortfolioProvider } from "./portfolio/PortfolioContext";
 import { usePortfolio } from "./portfolio/usePortfolio";
 import { Header } from "./components/Header";
+import { Dashboard } from "./components/Dashboard";
 import { PortfolioTab } from "./components/PortfolioTab";
 import { ChartsTab } from "./components/ChartsTab";
 import { SectorsTab } from "./components/SectorsTab";
@@ -18,6 +19,7 @@ function AppShell() {
   return (
     <div className="app">
       <Header onFileLoaded={() => setUpdateSignal((n) => n + 1)} />
+      <Dashboard />
       {file ? (
         <>
           <nav className="tabs">
