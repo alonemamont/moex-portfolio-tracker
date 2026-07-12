@@ -28,7 +28,9 @@ export function SectorsTab() {
 
   return (
     <div className="sectors-tab">
-      <SectorDonutChart positions={calculated} />
+      <div className="sector-chart">
+        <SectorDonutChart positions={calculated} />
+      </div>
       <button type="button" onClick={() => setModalOpen(true)}>
         Изменить сектора
       </button>

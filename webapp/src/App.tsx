@@ -18,7 +18,7 @@ function AppShell() {
   return (
     <div className="app">
       <Header onFileLoaded={() => setUpdateSignal((n) => n + 1)} />
-      {file && (
+      {file ? (
         <>
           <nav className="tabs">
             <button type="button" onClick={() => setTab("portfolio")} disabled={tab === "portfolio"}>
@@ -37,6 +37,12 @@ function AppShell() {
             {tab === "sectors" && <SectorsTab />}
           </main>
         </>
+      ) : (
+        <div className="app-empty">
+          <div className="app-empty__panel">
+            Портфель не загружен. Загрузите файл или начните с пустого портфеля, чтобы увидеть данные.
+          </div>
+        </div>
       )}
       <ErrorPanel />
     </div>

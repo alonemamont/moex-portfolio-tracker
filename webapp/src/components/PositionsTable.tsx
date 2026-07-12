@@ -1,4 +1,5 @@
 import { CalculatedPosition, STATUS_LABELS } from "../types";
+import { ComplianceGauge } from "./ComplianceGauge";
 
 function formatNumber(value: number | null, digits = 2): string {
   return value === null ? "—" : value.toFixed(digits);
@@ -25,61 +26,69 @@ export function PositionsTable({
   onChangeSharesOwned: (ticker: string, value: number) => void;
 }) {
   return (
-    <table className="positions-table">
-      <thead>
-        <tr>
-          <th>Тикер</th>
-          <th>Название</th>
-          <th>Вес в индексе</th>
-          <th>Цена</th>
-          <th>Лотность</th>
-          <th>Сектор</th>
-          <th>Дивиденд</th>
-          <th>Статус</th>
-          <th>{headerWithHint("Коэф-т", "Множитель к весу в индексе при расчёте целевой доли")}</th>
-          <th>Куплено</th>
-          <th>{headerWithHint("Цель", "Целевая доля = вес в индексе × коэффициент")}</th>
-          <th>{headerWithHint("Факт. доля", "Текущая доля позиции в стоимости портфеля, %")}</th>
-          <th>{headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}</th>
-          <th>Стоимость</th>
-          <th>{headerWithHint("Доход", "Дивиденд на акцию × количество акций")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {positions.map((p) => (
-          <tr key={p.ticker}>
-            <td>{p.ticker}</td>
-            <td>{p.shortName}</td>
-            <td>{formatNumber(p.indexWeight)}</td>
-            <td>{formatNumber(p.price)}</td>
-            <td>{p.lotSize ?? "—"}</td>
-            <td>{p.sector}</td>
-            <td>{formatNumber(p.dividendPerShare)}</td>
-            <td>{STATUS_LABELS[p.status]}</td>
-            <td>
-              <input
-                type="number"
-                step="0.01"
-                value={p.coefficient}
-                onChange={(e) => onChangeCoefficient(p.ticker, Number(e.target.value))}
-              />
-            </td>
-            <td>
-              <input
-                type="number"
-                step="1"
-                value={p.sharesOwned}
-                onChange={(e) => onChangeSharesOwned(p.ticker, Number(e.target.value))}
-              />
-            </td>
-            <td>{formatNumber(p.targetAllocation)}</td>
-            <td>{formatNumber(p.actualShare)}</td>
-            <td>{formatNumber(p.compliance)}</td>
-            <td>{formatNumber(p.positionValue)}</td>
-            <td>{formatNumber(p.income)}</td>
+    <div className="table-scroll">
+      <table className="positions-table">
+        <thead>
+          <tr>
+            <th>Тикер</th>
+            <th>Название</th>
+            <th className="num">Вес в индексе</th>
+            <th className="num">Цена</th>
+            <th className="num">Лотность</th>
+            <th>Сектор</th>
+            <th className="num">Дивиденд</th>
+            <th>Статус</th>
+            <th className="num">{headerWithHint("Коэф-т", "Множитель к весу в индексе при расчёте целевой доли")}</th>
+            <th className="num">Куплено</th>
+            <th className="num">{headerWithHint("Цель", "Целевая доля = вес в индексе × коэффициент")}</th>
+            <th className="num">{headerWithHint("Факт. доля", "Текущая доля позиции в стоимости портфеля, %")}</th>
+            <th className="num">{headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}</th>
+            <th className="num">Стоимость</th>
+            <th className="num">{headerWithHint("Доход", "Дивиденд на акцию × количество акций")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {positions.map((p) => (
+            <tr key={p.ticker}>
+              <td>{p.ticker}</td>
+              <td>{p.shortName}</td>
+              <td className="num">{formatNumber(p.indexWeight)}</td>
+              <td className="num">{formatNumber(p.price)}</td>
+              <td className="num">{p.lotSize ?? "—"}</td>
+              <td>{p.sector}</td>
+              <td className="num">{formatNumber(p.dividendPerShare)}</td>
+              <td>
+                <span className={`status-dot${p.status === "in_index" ? " status-dot--in" : ""}`}>
+                  {STATUS_LABELS[p.status]}
+                </span>
+              </td>
+              <td className="num">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={p.coefficient}
+                  onChange={(e) => onChangeCoefficient(p.ticker, Number(e.target.value))}
+                />
+              </td>
+              <td className="num">
+                <input
+                  type="number"
+                  step="1"
+                  value={p.sharesOwned}
+                  onChange={(e) => onChangeSharesOwned(p.ticker, Number(e.target.value))}
+                />
+              </td>
+              <td className="num">{formatNumber(p.targetAllocation)}</td>
+              <td className="num">{formatNumber(p.actualShare)}</td>
+              <td className="num">
+                <ComplianceGauge value={p.compliance} />
+              </td>
+              <td className="num">{formatNumber(p.positionValue)}</td>
+              <td className="num">{formatNumber(p.income)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
