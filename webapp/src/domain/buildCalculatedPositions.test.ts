@@ -77,4 +77,39 @@ describe("buildCalculatedPositions", () => {
     expect(result.find((p) => p.ticker === "GAZP")!.dividendYield).toBeCloseTo(5);
     expect(result.find((p) => p.ticker === "NOPRICE")!.dividendYield).toBeNull();
   });
+
+  it("computes sharesToBuy and buyAmountRub from targetAllocation, portfolioValue, price and sharesOwned", () => {
+    const positions: Position[] = [
+      { ticker: "GAZP", coefficient: 1, sharesOwned: 10 },
+      { ticker: "SBER", coefficient: 2, sharesOwned: 5 },
+    ];
+    const liveByTicker = new Map([
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 60, price: 100 })],
+      ["SBER", live({ ticker: "SBER", indexWeight: 40, price: 40 })],
+    ]);
+    // portfolioValue = 10*100 + 5*40 = 1200
+    // GAZP: targetAllocation 60, targetShares = round(0.6*1200/100) = 7, sharesToBuy = 7-10 = -3, buyAmountRub = -300
+    // SBER: targetAllocation 80, targetShares = round(0.8*1200/40) = 24, sharesToBuy = 24-5 = 19, buyAmountRub = 760
+
+    const result = buildCalculatedPositions(positions, liveByTicker, () => "Финансы");
+
+    const gazp = result.find((p) => p.ticker === "GAZP")!;
+    expect(gazp.sharesToBuy).toBe(-3);
+    expect(gazp.buyAmountRub).toBe(-300);
+
+    const sber = result.find((p) => p.ticker === "SBER")!;
+    expect(sber.sharesToBuy).toBe(19);
+    expect(sber.buyAmountRub).toBe(760);
+  });
+
+  it("gives an out-of-index position a null sharesToBuy and buyAmountRub", () => {
+    const positions: Position[] = [{ ticker: "OLD", coefficient: 1, sharesOwned: 3 }];
+    const liveByTicker = new Map([
+      ["OLD", live({ ticker: "OLD", status: "out_of_index", indexWeight: 0, price: 50 })],
+    ]);
+
+    const [result] = buildCalculatedPositions(positions, liveByTicker, () => "Другое");
+    expect(result.sharesToBuy).toBeNull();
+    expect(result.buyAmountRub).toBeNull();
+  });
 });

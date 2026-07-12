@@ -6,6 +6,9 @@ import {
   computeActualShare,
   computeCompliance,
   computeDividendYield,
+  computeTargetShares,
+  computeSharesToBuy,
+  computeBuyAmountRub,
 } from "./calculations";
 
 export function buildCalculatedPositions(
@@ -37,6 +40,9 @@ export function buildCalculatedPositions(
     const compliance = computeCompliance(actualShare, targetAllocation);
     const income = computeIncome(live.dividendPerShare, position.sharesOwned);
     const dividendYield = computeDividendYield(live.dividendPerShare, live.price);
+    const targetShares = computeTargetShares(targetAllocation, portfolioValue, live.price);
+    const sharesToBuy = computeSharesToBuy(targetShares, position.sharesOwned);
+    const buyAmountRub = computeBuyAmountRub(sharesToBuy, live.price);
 
     return {
       ...position,
@@ -49,6 +55,8 @@ export function buildCalculatedPositions(
       positionValue,
       income,
       dividendYield,
+      sharesToBuy,
+      buyAmountRub,
     };
   });
 }

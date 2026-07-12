@@ -10,6 +10,9 @@ import {
   computeDeviationRub,
   findDeviationExtremes,
   computeDividendYield,
+  computeTargetShares,
+  computeSharesToBuy,
+  computeBuyAmountRub,
 } from "./calculations";
 
 describe("computeTargetAllocation", () => {
@@ -153,5 +156,61 @@ describe("computeDividendYield", () => {
 
   it("is 0 (not null) when there is no dividend but price is valid", () => {
     expect(computeDividendYield(0, 40)).toBe(0);
+  });
+});
+
+describe("computeTargetShares", () => {
+  it("rounds targetAllocation% of portfolioValue divided by price to whole shares", () => {
+    // 50% of 1000 / 100 = 5
+    expect(computeTargetShares(50, 1000, 100)).toBe(5);
+  });
+
+  it("rounds to the nearest whole share", () => {
+    // 60% of 1200 / 100 = 7.2 -> 7
+    expect(computeTargetShares(60, 1200, 100)).toBe(7);
+  });
+
+  it("returns null when targetAllocation is null (out of index)", () => {
+    expect(computeTargetShares(null, 1000, 100)).toBeNull();
+  });
+
+  it("returns null when price is null", () => {
+    expect(computeTargetShares(50, 1000, null)).toBeNull();
+  });
+
+  it("returns null when price is 0", () => {
+    expect(computeTargetShares(50, 1000, 0)).toBeNull();
+  });
+});
+
+describe("computeSharesToBuy", () => {
+  it("is targetShares minus sharesOwned when more shares are needed", () => {
+    expect(computeSharesToBuy(5, 3)).toBe(2);
+  });
+
+  it("is negative when the position already holds more than the target (sell signal)", () => {
+    expect(computeSharesToBuy(2, 5)).toBe(-3);
+  });
+
+  it("returns null when targetShares is null", () => {
+    expect(computeSharesToBuy(null, 3)).toBeNull();
+  });
+});
+
+describe("computeBuyAmountRub", () => {
+  it("multiplies sharesToBuy by price", () => {
+    expect(computeBuyAmountRub(2, 100)).toBe(200);
+  });
+
+  it("is negative for a sell signal (negative sharesToBuy)", () => {
+    expect(computeBuyAmountRub(-3, 50)).toBe(-150);
+  });
+
+  it("returns null when sharesToBuy is null", () => {
+    expect(computeBuyAmountRub(null, 100)).toBeNull();
+  });
+
+  it("returns null when price is null", () => {
+    expect(computeBuyAmountRub(2, null)).toBeNull();
   });
 });

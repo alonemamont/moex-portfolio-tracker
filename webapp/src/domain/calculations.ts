@@ -75,3 +75,22 @@ export function computeDividendYield(dividendPerShare: number, price: number | n
   if (price === null || price === 0) return null;
   return (dividendPerShare / price) * 100;
 }
+
+export function computeTargetShares(
+  targetAllocation: number | null,
+  portfolioValue: number,
+  price: number | null
+): number | null {
+  if (targetAllocation === null || price === null || price === 0) return null;
+  return Math.round(((targetAllocation / 100) * portfolioValue) / price);
+}
+
+export function computeSharesToBuy(targetShares: number | null, sharesOwned: number): number | null {
+  if (targetShares === null) return null;
+  return targetShares - sharesOwned;
+}
+
+export function computeBuyAmountRub(sharesToBuy: number | null, price: number | null): number | null {
+  if (sharesToBuy === null || price === null) return null;
+  return sharesToBuy * price;
+}
