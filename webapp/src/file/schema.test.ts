@@ -13,6 +13,7 @@ const valid = {
       snapshot: [{ ticker: "SBER", price: 300, weight: 5, status: "in_index" }],
     },
   ],
+  pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
 };
 
 describe("parsePortfolioFile", () => {
@@ -22,7 +23,7 @@ describe("parsePortfolioFile", () => {
 
   it("accepts an empty positions/sectors/history file", () => {
     const empty = { version: 1, positions: [], sectors: {}, history: [] };
-    expect(parsePortfolioFile(empty)).toEqual(empty);
+    expect(parsePortfolioFile(empty)).toEqual({ ...empty, pairs: [] });
   });
 
   it("rejects a file with the wrong version", () => {
@@ -43,5 +44,20 @@ describe("parsePortfolioFile", () => {
   it("rejects non-object input", () => {
     expect(() => parsePortfolioFile(null)).toThrow(PortfolioFileValidationError);
     expect(() => parsePortfolioFile("not json")).toThrow(PortfolioFileValidationError);
+  });
+
+  it("defaults pairs to [] when the field is absent (old files without the pairs field)", () => {
+    const { pairs, ...withoutPairs } = valid;
+    expect(parsePortfolioFile(withoutPairs)).toEqual({ ...withoutPairs, pairs: [] });
+  });
+
+  it("rejects a pair with fewer than 2 tickers", () => {
+    const bad = { ...valid, pairs: [{ tickers: ["SBER"], coefficient: 1 }] };
+    expect(() => parsePortfolioFile(bad)).toThrow(PortfolioFileValidationError);
+  });
+
+  it("rejects a pair with a non-numeric coefficient", () => {
+    const bad = { ...valid, pairs: [{ tickers: ["SBER", "SBERP"], coefficient: "high" }] };
+    expect(() => parsePortfolioFile(bad)).toThrow(PortfolioFileValidationError);
   });
 });

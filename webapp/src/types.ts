@@ -50,9 +50,15 @@ export interface HistorySnapshot {
   snapshot: HistorySnapshotRow[];
 }
 
+export interface Pair {
+  tickers: string[];
+  coefficient: number;
+}
+
 export interface PortfolioFile {
   version: 1;
   positions: Position[];
   sectors: Record<string, string>;
   history: HistorySnapshot[];
+  pairs: Pair[];
 }

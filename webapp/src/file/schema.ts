@@ -22,11 +22,17 @@ const historySnapshotSchema = z.object({
   snapshot: z.array(historySnapshotRowSchema),
 });
 
+const pairSchema = z.object({
+  tickers: z.array(z.string()).min(2),
+  coefficient: z.number(),
+});
+
 const portfolioFileSchema = z.object({
   version: z.literal(1),
   positions: z.array(positionSchema),
   sectors: z.record(z.string()),
   history: z.array(historySnapshotSchema),
+  pairs: z.array(pairSchema).default([]),
 });
 
 export function parsePortfolioFile(raw: unknown): z.infer<typeof portfolioFileSchema> {

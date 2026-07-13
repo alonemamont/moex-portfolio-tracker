@@ -10,6 +10,7 @@ const baseFile: PortfolioFile = {
   positions: [{ ticker: "GAZP", coefficient: 1, sharesOwned: 10 }],
   sectors: {},
   history: [{ timestamp: "2026-07-10T00:00:00.000Z", portfolioValue: 100, avgCompliance: 1, snapshot: [] }],
+  pairs: [],
 };
 
 describe("switchIndex", () => {

@@ -9,5 +9,6 @@ export async function createEmptyPortfolio(): Promise<PortfolioFile> {
     positions: composition.map((c) => ({ ticker: c.ticker, coefficient: 1, sharesOwned: 0 })),
     sectors: {},
     history: [],
+    pairs: [],
   };
 }
