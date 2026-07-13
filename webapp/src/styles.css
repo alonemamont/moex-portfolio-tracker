@@ -354,6 +354,7 @@ input[type="checkbox"] {
   border-right: 1px solid var(--accent);
 }
 
+/* thead row 2 has no cells outside th-group subcolumns; if that changes, this needs a scoping class */
 .positions-table thead tr:nth-child(2) th {
   background: var(--accent-dim);
 }
