@@ -16,6 +16,8 @@ const sampleFile: PortfolioFile = {
   sectors: {},
   history: [],
   pairs: [],
+  brokerAccounts: [],
+  transactions: [],
 };
 
 function Harness() {

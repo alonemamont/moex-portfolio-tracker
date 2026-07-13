@@ -8,3 +8,9 @@ positions.csv
 
 # Local Claude Code settings
 .claude/
+
+# Superpowers brainstorming companion mockups (ephemeral, local only)
+.superpowers/
+
+# Local isolated development worktrees
+.worktrees/

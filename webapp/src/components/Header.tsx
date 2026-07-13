@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { usePortfolio } from "../portfolio/usePortfolio";
 import { useErrors } from "../errors/useErrors";
 import { createEmptyPortfolio } from "../file/createEmptyPortfolio";
-import { switchIndex } from "../portfolio/runMarketUpdate";
+import { mergeCompletedMarketUpdate, switchIndex } from "../portfolio/runMarketUpdate";
 import { INDEX_OPTIONS } from "../domain/indices";
 import {
   isFileSystemAccessSupported,
@@ -106,7 +106,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
         liveByTicker,
         newIndexId
       );
-      setFile(updated);
+      setFile((current) => current ? mergeCompletedMarketUpdate(current, updated) : current);
       setLiveByTicker(newLiveByTicker);
       setSelectedIndex(newIndexId);
     } catch (error) {

@@ -14,6 +14,17 @@ interface MarketSnapshot {
   portfolioValue: number;
 }
 
+export function mergeCompletedMarketUpdate(
+  latestFile: PortfolioFile,
+  completedMarketUpdate: PortfolioFile
+): PortfolioFile {
+  return {
+    ...completedMarketUpdate,
+    brokerAccounts: latestFile.brokerAccounts,
+    transactions: latestFile.transactions,
+  };
+}
+
 async function computeMarketSnapshot(
   currentFile: PortfolioFile,
   previousLiveByTicker: Map<string, LiveData>,
