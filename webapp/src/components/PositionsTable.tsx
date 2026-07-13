@@ -1,6 +1,18 @@
-import { CalculatedPosition } from "../types";
+import { CalculatedPosition, Pair } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { formatNumber } from "./formatPosition";
+
+function formatMoney(value: number | null, digits = 2): string {
+  if (value === null) return "—";
+  return value.toLocaleString("ru-RU", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function formatMoneyTruncated(value: number): string {
+  return Math.trunc(value).toLocaleString("ru-RU");
+}
 
 function headerWithHint(label: string, hint: string) {
   return (
@@ -13,53 +25,95 @@ function headerWithHint(label: string, hint: string) {
   );
 }
 
+function pairRowClass(
+  ticker: string,
+  index: number,
+  positions: CalculatedPosition[],
+  pairedTickers: Map<string, Pair>
+): string {
+  const pair = pairedTickers.get(ticker);
+  if (!pair) return "";
+
+  const prevTicker = index > 0 ? positions[index - 1].ticker : undefined;
+  const nextTicker = index < positions.length - 1 ? positions[index + 1].ticker : undefined;
+  const isFirst = prevTicker === undefined || pairedTickers.get(prevTicker) !== pair;
+  const isLast = nextTicker === undefined || pairedTickers.get(nextTicker) !== pair;
+
+  let className = "paired-row";
+  if (isFirst) className += " paired-row--first";
+  if (isLast) className += " paired-row--last";
+  return className;
+}
+
 export function PositionsTable({
   positions,
+  pairs,
   onChangeCoefficient,
   onChangeSharesOwned,
 }: {
   positions: CalculatedPosition[];
+  pairs: Pair[];
   onChangeCoefficient: (ticker: string, value: number) => void;
   onChangeSharesOwned: (ticker: string, value: number) => void;
 }) {
+  const pairedTickers = new Map<string, Pair>();
+  for (const pair of pairs) {
+    for (const ticker of pair.tickers) pairedTickers.set(ticker, pair);
+  }
+
   return (
     <div className="table-scroll">
       <table className="positions-table">
         <thead>
           <tr>
-            <th></th>
-            <th>Тикер</th>
-            <th>Название</th>
-            <th className="num">Вес в индексе, %</th>
-            <th className="num">Цена</th>
-            <th className="num">Лотность</th>
-            <th className="num">Дивиденд</th>
-            <th className="num">Див доходность, %</th>
-            <th className="num">{headerWithHint("Коэф-т", "Множитель к весу в индексе при расчёте целевой доли")}</th>
-            <th className="num">Куплено</th>
-            <th className="num">{headerWithHint("Акций купить", "Целое число акций до целевой доли; минус — продать")}</th>
-            <th className="num">Купить на сумму</th>
-            <th className="num">{headerWithHint("Цель", "Целевая доля = вес в индексе × коэффициент")}</th>
-            <th className="num">{headerWithHint("Факт. доля", "Текущая доля позиции в стоимости портфеля, %")}</th>
-            <th className="num">{headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}</th>
-            <th className="num">Стоимость</th>
-            <th className="num">{headerWithHint("Доход", "Дивиденд на акцию × количество акций")}</th>
-            <th>Сектор</th>
+            <th rowSpan={2}></th>
+            <th rowSpan={2}>Тикер</th>
+            <th rowSpan={2}>Название</th>
+            <th colSpan={2} className="num th-group">Вес %</th>
+            <th rowSpan={2} className="num">Цена</th>
+            <th rowSpan={2} className="num">Лотность</th>
+            <th rowSpan={2} className="num">
+              {headerWithHint("Коэф-т", "Множитель к весу в индексе при расчёте целевой доли")}
+            </th>
+            <th colSpan={2} className="num th-group">Куплено</th>
+            <th colSpan={2} className="num th-group">Купить</th>
+            <th rowSpan={2} className="num">
+              {headerWithHint("Цель", "Целевая доля = вес в индексе × коэффициент")}
+            </th>
+            <th rowSpan={2} className="num">
+              {headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}
+            </th>
+            <th colSpan={3} className="num th-group">Дивиденды</th>
+            <th rowSpan={2}>Сектор</th>
+          </tr>
+          <tr>
+            <th className="num th-group-start">в индексе</th>
+            <th className="num th-group-end">
+              {headerWithHint("фактический", "Текущая доля позиции в стоимости портфеля, %")}
+            </th>
+            <th className="num th-group-start">Штук</th>
+            <th className="num th-group-end">Стоимость</th>
+            <th className="num th-group-start">Штук</th>
+            <th className="num th-group-end">На сумму</th>
+            <th className="num th-group-start">Размер ₽</th>
+            <th className="num">Доходность %</th>
+            <th className="num th-group-end">
+              {headerWithHint("Доход ₽", "Дивиденд на акцию × количество акций")}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {positions.map((p) => (
-            <tr key={p.ticker}>
+          {positions.map((p, index) => (
+            <tr key={p.ticker} className={pairRowClass(p.ticker, index, positions, pairedTickers)}>
               <td>
                 <span className={`status-dot${p.status === "in_index" ? " status-dot--in" : ""}`} />
               </td>
               <td>{p.ticker}</td>
               <td>{p.shortName}</td>
               <td className="num">{formatNumber(p.indexWeight)}</td>
-              <td className="num">{formatNumber(p.price)}</td>
+              <td className="num">{formatNumber(p.actualShare)}</td>
+              <td className="num">{formatMoney(p.price)}</td>
               <td className="num">{p.lotSize ?? "—"}</td>
-              <td className="num">{formatNumber(p.dividendPerShare)}</td>
-              <td className="num">{formatNumber(p.dividendYield)}</td>
               <td className="num td-editable">
                 <input
                   type="number"
@@ -76,15 +130,16 @@ export function PositionsTable({
                   onChange={(e) => onChangeSharesOwned(p.ticker, Number(e.target.value))}
                 />
               </td>
+              <td className="num">{formatMoneyTruncated(p.positionValue)}</td>
               <td className="num">{formatNumber(p.sharesToBuy, 0)}</td>
-              <td className="num">{formatNumber(p.buyAmountRub)}</td>
+              <td className="num">{formatMoney(p.buyAmountRub)}</td>
               <td className="num">{formatNumber(p.targetAllocation)}</td>
-              <td className="num">{formatNumber(p.actualShare)}</td>
               <td className="num">
                 <ComplianceGauge value={p.compliance} />
               </td>
-              <td className="num">{formatNumber(p.positionValue)}</td>
-              <td className="num">{formatNumber(p.income)}</td>
+              <td className="num">{formatMoney(p.dividendPerShare)}</td>
+              <td className="num">{formatNumber(p.dividendYield)}</td>
+              <td className="num">{formatMoney(p.income)}</td>
               <td>{p.sector}</td>
             </tr>
           ))}
