@@ -12,6 +12,7 @@ import {
   computeCombinedIndexWeight,
   computePairedTargets,
   computePairMemberTargetShares,
+  computeTotalSharesOwned,
   PairedTargets,
 } from "./calculations";
 
@@ -33,8 +34,9 @@ export function buildCalculatedPositions(
       status: "out_of_index",
     };
     const resolvedLive = live ?? fallbackLive;
-    const positionValue = computePositionValue(resolvedLive.price, position.sharesOwned);
-    return { position, live: resolvedLive, positionValue };
+    const totalShares = computeTotalSharesOwned(position);
+    const positionValue = computePositionValue(resolvedLive.price, totalShares);
+    return { position, live: resolvedLive, positionValue, totalShares };
   });
 
   const portfolioValue = withLive.reduce((sum, { positionValue }) => sum + positionValue, 0);
@@ -44,12 +46,12 @@ export function buildCalculatedPositions(
     for (const ticker of pair.tickers) pairByTicker.set(ticker, pair);
   }
 
-  const memberInputs = withLive.map(({ position, live }) => ({
+  const memberInputs = withLive.map(({ position, live, totalShares }) => ({
     ticker: position.ticker,
     indexWeight: live.indexWeight,
     status: live.status,
     price: live.price,
-    sharesOwned: position.sharesOwned,
+    sharesOwned: totalShares,
   }));
 
   const pairedTargetsByPair = new Map<Pair, PairedTargets>();
@@ -57,7 +59,7 @@ export function buildCalculatedPositions(
     pairedTargetsByPair.set(pair, computePairedTargets(pair, memberInputs, portfolioValue));
   }
 
-  return withLive.map(({ position, live, positionValue }) => {
+  return withLive.map(({ position, live, positionValue, totalShares }) => {
     const pair = pairByTicker.get(position.ticker);
 
     let coefficient: number;
@@ -84,7 +86,7 @@ export function buildCalculatedPositions(
         portfolioValue,
         live.price
       );
-      sharesToBuy = computeSharesToBuy(targetShares, position.sharesOwned);
+      sharesToBuy = computeSharesToBuy(targetShares, totalShares);
       buyAmountRub = computeBuyAmountRub(sharesToBuy, live.price);
     } else {
       coefficient = position.coefficient;
@@ -92,11 +94,11 @@ export function buildCalculatedPositions(
       actualShare = computeActualShare(positionValue, portfolioValue);
       compliance = computeCompliance(actualShare, targetAllocation);
       const targetShares = computeTargetShares(targetAllocation, portfolioValue, live.price);
-      sharesToBuy = computeSharesToBuy(targetShares, position.sharesOwned);
+      sharesToBuy = computeSharesToBuy(targetShares, totalShares);
       buyAmountRub = computeBuyAmountRub(sharesToBuy, live.price);
     }
 
-    const income = computeIncome(live.dividendPerShare, position.sharesOwned);
+    const income = computeIncome(live.dividendPerShare, totalShares);
     const dividendYield = computeDividendYield(live.dividendPerShare, live.price);
 
     return {
@@ -104,6 +106,8 @@ export function buildCalculatedPositions(
       ...live,
       ticker: position.ticker,
       coefficient,
+      sharesOwned: totalShares,
+      manualSharesOwned: position.sharesOwned,
       sector: resolveSector(position.ticker),
       targetAllocation,
       actualShare,
@@ -113,7 +117,6 @@ export function buildCalculatedPositions(
       dividendYield,
       sharesToBuy,
       buyAmountRub,
-      manualSharesOwned: position.sharesOwned,
     };
   });
 }

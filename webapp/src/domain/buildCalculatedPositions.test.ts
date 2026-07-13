@@ -205,3 +205,36 @@ describe("buildCalculatedPositions", () => {
     expect(gazp.coefficient).toBe(2);
   });
 });
+
+describe("buildCalculatedPositions — broker holdings", () => {
+  it("adds broker holdings on top of the manual sharesOwned for positionValue/income/sharesToBuy, and exposes manualSharesOwned separately", () => {
+    const positions: Position[] = [
+      {
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 2,
+        brokerHoldings: [{ connectionId: "conn-1", shares: 8, syncedAt: "2026-01-01" }],
+      },
+    ];
+    const liveByTicker = new Map([
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 100, price: 100, dividendPerShare: 1 })],
+    ]);
+
+    const [result] = buildCalculatedPositions(positions, liveByTicker, () => "Финансы");
+
+    expect(result.manualSharesOwned).toBe(2);
+    expect(result.sharesOwned).toBe(10);
+    expect(result.positionValue).toBe(1000);
+    expect(result.income).toBe(10);
+  });
+
+  it("treats a position with no brokerHoldings field the same as an empty array (old files)", () => {
+    const positions: Position[] = [{ ticker: "GAZP", coefficient: 1, sharesOwned: 5 }];
+    const liveByTicker = new Map([["GAZP", live({ ticker: "GAZP", price: 10 })]]);
+
+    const [result] = buildCalculatedPositions(positions, liveByTicker, () => "Финансы");
+
+    expect(result.sharesOwned).toBe(5);
+    expect(result.manualSharesOwned).toBe(5);
+  });
+});

@@ -16,6 +16,7 @@ import {
   computeCombinedIndexWeight,
   computePairedTargets,
   computePairMemberTargetShares,
+  computeTotalSharesOwned,
 } from "./calculations";
 
 describe("computeTargetAllocation", () => {
@@ -313,5 +314,26 @@ describe("computePairMemberTargetShares", () => {
 
   it("returns null when price is 0", () => {
     expect(computePairMemberTargetShares(12, 12, 9, 3500, 0)).toBeNull();
+  });
+});
+
+describe("computeTotalSharesOwned", () => {
+  it("returns the manual sharesOwned when there are no broker holdings", () => {
+    expect(computeTotalSharesOwned({ sharesOwned: 10, brokerHoldings: [] })).toBe(10);
+  });
+
+  it("returns the manual sharesOwned when brokerHoldings is undefined (old file without broker sync)", () => {
+    expect(computeTotalSharesOwned({ sharesOwned: 10, brokerHoldings: undefined })).toBe(10);
+  });
+
+  it("sums manual shares with every broker holding's shares", () => {
+    const position = {
+      sharesOwned: 2,
+      brokerHoldings: [
+        { connectionId: "conn-1", shares: 10, syncedAt: "2026-01-01" },
+        { connectionId: "conn-2", shares: 5, syncedAt: "2026-01-01" },
+      ],
+    };
+    expect(computeTotalSharesOwned(position)).toBe(17);
   });
 });
