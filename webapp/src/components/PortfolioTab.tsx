@@ -12,6 +12,7 @@ import {
 } from "../portfolio/tablePrefs";
 import { PositionsTable } from "./PositionsTable";
 import { AddTickerModal } from "./AddTickerModal";
+import { PairPositionsModal } from "./PairPositionsModal";
 import { PortfolioFile } from "../types";
 
 const SOURCE = "update";
@@ -25,6 +26,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const [search, setSearch] = useState(() => loadSearchPref());
   const [hideEmpty, setHideEmpty] = useState(() => loadHideEmptyPref());
   const [showAddTicker, setShowAddTicker] = useState(false);
+  const [showPairPositions, setShowPairPositions] = useState(false);
 
   useEffect(() => {
     saveSearchPref(search);
@@ -75,6 +77,16 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
 
   function updateField(ticker: string, field: "coefficient" | "sharesOwned", value: number) {
     if (!file) return;
+    if (field === "coefficient") {
+      const pairIndex = file.pairs.findIndex((pair) => pair.tickers.includes(ticker));
+      if (pairIndex !== -1) {
+        setFile({
+          ...file,
+          pairs: file.pairs.map((pair, i) => (i === pairIndex ? { ...pair, coefficient: value } : pair)),
+        });
+        return;
+      }
+    }
     setFile({
       ...file,
       positions: file.positions.map((p) =>
@@ -103,6 +115,9 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         <button type="button" onClick={() => setShowAddTicker(true)} disabled={isUpdating}>
           + Тикер
         </button>
+        <button type="button" onClick={() => setShowPairPositions(true)} disabled={isUpdating}>
+          Парные позиции
+        </button>
       </div>
       <div className="controls-row">
         <input
@@ -130,6 +145,17 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           existingPositions={file.positions}
           onConfirm={handleAddTicker}
           onClose={() => setShowAddTicker(false)}
+        />
+      )}
+      {showPairPositions && (
+        <PairPositionsModal
+          existingPositions={file.positions}
+          pairs={file.pairs}
+          onSave={(pairs) => {
+            setFile({ ...file, pairs });
+            setShowPairPositions(false);
+          }}
+          onClose={() => setShowPairPositions(false)}
         />
       )}
     </div>
