@@ -45,6 +45,8 @@ export function computeCalculatedPositionsResult(
   const pairDeviations: DeviationEntry[] = file.pairs.flatMap((pair) => {
     const member = calculated.find((p) => pair.tickers.includes(p.ticker));
     if (!member || member.targetAllocation === null || member.actualShare === null) return [];
+    const members = calculated.filter((p) => pair.tickers.includes(p.ticker));
+    if (members.every((p) => p.status !== "in_index")) return [];
     return [
       {
         ticker: pair.tickers.join("+"),

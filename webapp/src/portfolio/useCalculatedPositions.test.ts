@@ -114,4 +114,32 @@ describe("computeCalculatedPositionsResult", () => {
     expect(result.largestSurplus?.ticker).toBe("SBER+SBERP");
     expect(result.largestShortfall?.ticker).toBe("GAZP");
   });
+
+  it("excludes a pair from the dashboard extremes when every member is out of the index, even though it is still held", () => {
+    const f = file({
+      positions: [
+        { ticker: "OLD1", coefficient: 1, sharesOwned: 10 },
+        { ticker: "OLD2", coefficient: 1, sharesOwned: 5 },
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
+      ],
+      pairs: [{ tickers: ["OLD1", "OLD2"], coefficient: 1 }],
+    });
+    const liveByTicker = new Map([
+      ["OLD1", live({ ticker: "OLD1", status: "out_of_index", indexWeight: 0, price: 250 })],
+      ["OLD2", live({ ticker: "OLD2", status: "out_of_index", indexWeight: 0, price: 200 })],
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 5, price: 100 })],
+    ]);
+    // OLD1+OLD2: combinedIndexWeight = 0, targetAllocation = 0 (not null) per computePairedTargets,
+    // but both members are out_of_index, so the pair must NOT appear in largestSurplus/largestShortfall
+    // even though it still holds value (2500+1000=3500) and would otherwise look like a huge "surplus"
+    // against a targetAllocation of 0.
+    // GAZP: targetAllocation = 5, actualShare = 100/3600*100 ≈ 2.78 -> shortfall (the only real candidate)
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.largestSurplus?.ticker).not.toBe("OLD1+OLD2");
+    expect(result.largestShortfall?.ticker).not.toBe("OLD1+OLD2");
+    expect(result.largestSurplus?.ticker).toBe("GAZP");
+    expect(result.largestShortfall?.ticker).toBe("GAZP");
+  });
 });
