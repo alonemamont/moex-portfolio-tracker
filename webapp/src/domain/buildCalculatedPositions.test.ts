@@ -143,8 +143,8 @@ describe("buildCalculatedPositions", () => {
 
   it("splits sharesToBuy/buyAmountRub across pair members proportionally to their own share of the combined index weight", () => {
     const positions: Position[] = [
-      { ticker: "SBER", coefficient: 1, sharesOwned: 10 },
-      { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
+      { ticker: "SBER", coefficient: 3, sharesOwned: 10 },
+      { ticker: "SBERP", coefficient: 7, sharesOwned: 5 },
     ];
     const liveByTicker = new Map([
       ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
