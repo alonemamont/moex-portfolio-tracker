@@ -11,3 +11,6 @@ positions.csv
 
 # Superpowers brainstorming companion mockups (ephemeral, local only)
 .superpowers/
+
+# Local isolated development worktrees
+.worktrees/
