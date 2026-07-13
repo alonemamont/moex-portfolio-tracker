@@ -2,6 +2,7 @@
   --bg: #0b0e12;
   --panel: #141920;
   --panel-alt: #171d25;
+  --paired-bg: #12161c;
   --line: #262d38;
   --line-soft: #1c222b;
   --fg: #e7eaee;
@@ -350,11 +351,11 @@ input[type="checkbox"] {
 }
 
 .positions-table tbody tr.paired-row {
-  background: var(--panel-alt);
+  background: var(--paired-bg);
 }
 
 .positions-table tbody tr.paired-row:nth-child(even) {
-  background: var(--panel-alt);
+  background: var(--paired-bg);
 }
 
 .positions-table tbody tr.paired-row td:first-child {
@@ -369,7 +370,8 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--accent);
 }
 
-.positions-table tbody tr:hover {
+.positions-table tbody tr:hover,
+.positions-table tbody tr.paired-row:hover {
   background: var(--accent-dim);
 }
 
