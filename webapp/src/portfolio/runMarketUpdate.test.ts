@@ -11,6 +11,8 @@ const baseFile: PortfolioFile = {
   sectors: {},
   history: [],
   pairs: [],
+  brokerAccounts: [],
+  transactions: [],
 };
 
 describe("runMarketUpdate", () => {

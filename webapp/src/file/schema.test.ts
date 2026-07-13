@@ -14,6 +14,18 @@ const valid = {
     },
   ],
   pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
+  brokerAccounts: [{ id: "account-1", name: "Основной" }],
+  transactions: [
+    {
+      id: "transaction-1",
+      type: "deposit",
+      amount: 1500.25,
+      currency: "RUB",
+      date: "2026-07-13",
+      comment: "Пополнение",
+      accountId: "account-1",
+    },
+  ],
 };
 
 describe("parsePortfolioFile", () => {
@@ -23,7 +35,100 @@ describe("parsePortfolioFile", () => {
 
   it("accepts an empty positions/sectors/history file", () => {
     const empty = { version: 1, positions: [], sectors: {}, history: [] };
-    expect(parsePortfolioFile(empty)).toEqual({ ...empty, pairs: [] });
+    expect(parsePortfolioFile(empty)).toEqual({
+      ...empty,
+      pairs: [],
+      brokerAccounts: [],
+      transactions: [],
+    });
+  });
+
+  it("defaults brokerAccounts and transactions for a version-1 file created before transactions existed", () => {
+    const oldFile = { version: 1, positions: [], sectors: {}, history: [], pairs: [] };
+    expect(parsePortfolioFile(oldFile)).toEqual({
+      ...oldFile,
+      brokerAccounts: [],
+      transactions: [],
+    });
+  });
+
+  it("trims account names/comments and removes an empty comment", () => {
+    const parsed = parsePortfolioFile({
+      ...valid,
+      brokerAccounts: [{ id: "account-1", name: "  Основной  " }],
+      transactions: [
+        { ...valid.transactions[0], comment: "   " },
+        { ...valid.transactions[0], id: "transaction-2", comment: "  заметка  " },
+      ],
+    });
+    expect(parsed.brokerAccounts[0].name).toBe("Основной");
+    expect(parsed.transactions[0].comment).toBeUndefined();
+    expect(parsed.transactions[1].comment).toBe("заметка");
+  });
+
+  it.each([0, -1, Number.POSITIVE_INFINITY, 1.001])("rejects invalid transaction amount %s", (amount) => {
+    expect(() =>
+      parsePortfolioFile({ ...valid, transactions: [{ ...valid.transactions[0], amount }] })
+    ).toThrow(PortfolioFileValidationError);
+  });
+
+  it.each(["2026-02-30", "13.07.2026", "", "2026-7-13"])("rejects invalid transaction date %s", (date) => {
+    expect(() =>
+      parsePortfolioFile({ ...valid, transactions: [{ ...valid.transactions[0], date }] })
+    ).toThrow(PortfolioFileValidationError);
+  });
+
+  it("rejects unsupported transaction types/currencies and a blank account name", () => {
+    expect(() => parsePortfolioFile({
+      ...valid,
+      transactions: [{ ...valid.transactions[0], type: "transfer" }],
+    })).toThrow(PortfolioFileValidationError);
+    expect(() => parsePortfolioFile({
+      ...valid,
+      transactions: [{ ...valid.transactions[0], currency: "EUR" }],
+    })).toThrow(PortfolioFileValidationError);
+    expect(() => parsePortfolioFile({
+      ...valid,
+      brokerAccounts: [{ id: "account-1", name: "   " }],
+      transactions: [],
+    })).toThrow(PortfolioFileValidationError);
+  });
+
+  it("accepts a future date and every supported currency", () => {
+    const parsed = parsePortfolioFile({
+      ...valid,
+      transactions: (["RUB", "USD", "CNY"] as const).map((currency, index) => ({
+        ...valid.transactions[0],
+        id: `transaction-${index}`,
+        currency,
+        date: "2099-12-31",
+      })),
+    });
+    expect(parsed.transactions.map((transaction) => transaction.currency)).toEqual(["RUB", "USD", "CNY"]);
+  });
+
+  it("rejects duplicate account IDs, duplicate transaction IDs, and duplicate normalized account names", () => {
+    expect(() => parsePortfolioFile({
+      ...valid,
+      brokerAccounts: [{ id: "same", name: "Первый" }, { id: "same", name: "Второй" }],
+      transactions: [],
+    })).toThrow(/brokerAccounts/);
+    expect(() => parsePortfolioFile({
+      ...valid,
+      transactions: [valid.transactions[0], { ...valid.transactions[0] }],
+    })).toThrow(/transactions/);
+    expect(() => parsePortfolioFile({
+      ...valid,
+      brokerAccounts: [{ id: "a", name: " ИИС " }, { id: "b", name: "иис" }],
+      transactions: [],
+    })).toThrow(/name/);
+  });
+
+  it("rejects a transaction whose accountId does not reference brokerAccounts", () => {
+    expect(() => parsePortfolioFile({
+      ...valid,
+      transactions: [{ ...valid.transactions[0], accountId: "missing" }],
+    })).toThrow(/accountId/);
   });
 
   it("rejects a file with the wrong version", () => {
