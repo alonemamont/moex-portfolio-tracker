@@ -4,7 +4,7 @@ export const TRANSACTION_CURRENCIES: readonly TransactionCurrency[] = ["RUB", "U
 
 export function isValidTransactionAmount(amount: number): boolean {
   if (!Number.isFinite(amount) || amount <= 0) return false;
-  return Math.abs(amount - Math.round(amount * 100) / 100) < 1e-10;
+  return amount === Math.round(amount * 100) / 100;
 }
 
 export function isValidTransactionDate(value: string): boolean {

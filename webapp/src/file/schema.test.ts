@@ -66,7 +66,7 @@ describe("parsePortfolioFile", () => {
     expect(parsed.transactions[1].comment).toBe("заметка");
   });
 
-  it.each([0, -1, Number.POSITIVE_INFINITY, 1.001])("rejects invalid transaction amount %s", (amount) => {
+  it.each([0, -1, Number.POSITIVE_INFINITY, 1.001, 1.00000000001])("rejects invalid transaction amount %s", (amount) => {
     expect(() =>
       parsePortfolioFile({ ...valid, transactions: [{ ...valid.transactions[0], amount }] })
     ).toThrow(PortfolioFileValidationError);
