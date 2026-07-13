@@ -572,3 +572,73 @@ input[type="checkbox"] {
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+/* Position card (mobile) */
+
+.position-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.position-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-alt);
+}
+
+.position-card__summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.position-card__ticker {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.position-card__name {
+  flex: 1;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.position-card__price {
+  font-family: var(--font-mono);
+}
+
+.position-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.position-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.position-card__label {
+  color: var(--muted);
+}
+
+.position-card__row input[type="number"] {
+  min-height: 44px;
+  min-width: 90px;
+  font-size: 16px;
+  text-align: right;
+}
