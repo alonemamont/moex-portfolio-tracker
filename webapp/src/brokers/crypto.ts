@@ -1,6 +1,12 @@
 import { EncryptedToken } from "../types";
+export type { EncryptedToken };
 
-export class TokenDecryptionError extends Error {}
+export class TokenDecryptionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TokenDecryptionError";
+  }
+}
 
 const PBKDF2_ITERATIONS = 210_000;
 const SALT_BYTES = 16;
