@@ -43,7 +43,7 @@ export interface CalculatedPosition extends Position, LiveData {
   sharesToBuy: number | null;
   buyAmountRub: number | null;
   /** file.sharesOwned до добавления брокерских источников — исходное ручное значение. */
-  manualSharesOwned?: number;
+  manualSharesOwned: number;
 }
 
 export interface HistorySnapshotRow {

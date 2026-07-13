@@ -113,6 +113,7 @@ export function buildCalculatedPositions(
       dividendYield,
       sharesToBuy,
       buyAmountRub,
+      manualSharesOwned: position.sharesOwned,
     };
   });
 }
