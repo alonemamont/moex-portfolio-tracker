@@ -48,7 +48,7 @@ export function TransactionFormModal({
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={transaction ? "Редактировать транзакцию" : "Добавить транзакцию"}>
-      <form className="modal transaction-form" onSubmit={handleSubmit}>
+      <form className="modal transaction-form" onSubmit={handleSubmit} noValidate>
         <h2>{transaction ? "Редактировать транзакцию" : "Добавить транзакцию"}</h2>
         <label>Тип
           <select value={type} onChange={(event) => setType(event.target.value as TransactionType)}>
