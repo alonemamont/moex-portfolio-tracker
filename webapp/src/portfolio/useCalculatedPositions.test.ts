@@ -142,4 +142,24 @@ describe("computeCalculatedPositionsResult", () => {
     expect(result.largestSurplus?.ticker).toBe("GAZP");
     expect(result.largestShortfall?.ticker).toBe("GAZP");
   });
+
+  it("groups paired positions so members sit adjacent, at the first member's original slot", () => {
+    const f = file({
+      positions: [
+        { ticker: "A", coefficient: 1, sharesOwned: 1 },
+        { ticker: "B", coefficient: 1, sharesOwned: 1 },
+        { ticker: "C", coefficient: 1, sharesOwned: 1 },
+        { ticker: "D", coefficient: 1, sharesOwned: 1 },
+        { ticker: "E", coefficient: 1, sharesOwned: 1 },
+      ],
+      pairs: [{ tickers: ["C", "E"], coefficient: 1 }],
+    });
+    const liveByTicker = new Map(
+      ["A", "B", "C", "D", "E"].map((ticker) => [ticker, live({ ticker, price: 10 })])
+    );
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.calculated.map((p) => p.ticker)).toEqual(["A", "B", "C", "E", "D"]);
+  });
 });

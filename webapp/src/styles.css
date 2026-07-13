@@ -2,6 +2,7 @@
   --bg: #0b0e12;
   --panel: #141920;
   --panel-alt: #171d25;
+  --paired-bg: #12161c;
   --line: #262d38;
   --line-soft: #1c222b;
   --fg: #e7eaee;
@@ -257,6 +258,12 @@ input[type="checkbox"] {
   margin-top: 14px;
 }
 
+.modal__divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 14px 0;
+}
+
 .add-ticker__field {
   display: flex;
   flex-direction: column;
@@ -339,7 +346,32 @@ input[type="checkbox"] {
   background: var(--panel-alt);
 }
 
-.positions-table tbody tr:hover {
+.positions-table th.th-group {
+  text-align: center;
+}
+
+.positions-table tbody tr.paired-row {
+  background: var(--paired-bg);
+}
+
+.positions-table tbody tr.paired-row:nth-child(even) {
+  background: var(--paired-bg);
+}
+
+.positions-table tbody tr.paired-row td:first-child {
+  border-left: 2px solid var(--accent);
+}
+
+.positions-table tbody tr.paired-row--first td {
+  border-top: 1px solid var(--accent);
+}
+
+.positions-table tbody tr.paired-row--last td {
+  border-bottom: 1px solid var(--accent);
+}
+
+.positions-table tbody tr:hover,
+.positions-table tbody tr.paired-row:hover {
   background: var(--accent-dim);
 }
 

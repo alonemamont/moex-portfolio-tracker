@@ -9,6 +9,8 @@ import {
   saveSearchPref,
   loadHideEmptyPref,
   saveHideEmptyPref,
+  loadOnlyInIndexPref,
+  saveOnlyInIndexPref,
 } from "../portfolio/tablePrefs";
 import { PositionsTable } from "./PositionsTable";
 import { AddTickerModal } from "./AddTickerModal";
@@ -25,6 +27,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
 
   const [search, setSearch] = useState(() => loadSearchPref());
   const [hideEmpty, setHideEmpty] = useState(() => loadHideEmptyPref());
+  const [onlyInIndex, setOnlyInIndex] = useState(() => loadOnlyInIndexPref());
   const [showAddTicker, setShowAddTicker] = useState(false);
   const [showPairPositions, setShowPairPositions] = useState(false);
 
@@ -35,6 +38,10 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   useEffect(() => {
     saveHideEmptyPref(hideEmpty);
   }, [hideEmpty]);
+
+  useEffect(() => {
+    saveOnlyInIndexPref(onlyInIndex);
+  }, [onlyInIndex]);
 
   async function handleUpdate(fileOverride?: PortfolioFile) {
     const target = fileOverride ?? file;
@@ -69,8 +76,8 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const { calculated } = useCalculatedPositions();
 
   const filteredPositions = useMemo(
-    () => filterPositions(calculated, search, hideEmpty),
-    [calculated, search, hideEmpty]
+    () => filterPositions(calculated, file?.pairs ?? [], search, hideEmpty, onlyInIndex),
+    [calculated, file, search, hideEmpty, onlyInIndex]
   );
 
   if (!file) return null;
@@ -134,9 +141,18 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           />
           Скрывать пустые позиции
         </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={onlyInIndex}
+            onChange={(e) => setOnlyInIndex(e.target.checked)}
+          />
+          Только в индексе
+        </label>
       </div>
       <PositionsTable
         positions={filteredPositions}
+        pairs={file.pairs}
         onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
         onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
       />

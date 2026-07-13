@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { usePortfolio } from "./usePortfolio";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
+import { groupPairedPositions } from "../domain/groupPairedPositions";
 import { createSectorResolver } from "../domain/sectors";
 import { computeAverageCompliance, computeDeviationRub, findDeviationExtremes, DeviationEntry } from "../domain/calculations";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
@@ -29,7 +30,10 @@ export function computeCalculatedPositionsResult(
   }
 
   const resolveSector = createSectorResolver(SECTORS_DEFAULT, file.sectors);
-  const calculated = buildCalculatedPositions(file.positions, liveByTicker, resolveSector, file.pairs);
+  const calculated = groupPairedPositions(
+    buildCalculatedPositions(file.positions, liveByTicker, resolveSector, file.pairs),
+    file.pairs
+  );
   const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
   const avgCompliance = computeAverageCompliance(calculated.map((p) => p.compliance));
 
