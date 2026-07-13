@@ -36,7 +36,14 @@ export function BrokerAccountsModal({
     const value = draftNames[id] ?? "";
     const error = validateAccountName(value, file.brokerAccounts, id);
     setRowErrors((current) => ({ ...current, [id]: error ?? "" }));
-    if (!error) onChange(renameBrokerAccount(file, id, value));
+    if (!error) {
+      const renamedFile = renameBrokerAccount(file, id, value);
+      onChange(renamedFile);
+      const renamedAccount = renamedFile.brokerAccounts.find((account) => account.id === id);
+      if (renamedAccount) {
+        setDraftNames((current) => ({ ...current, [id]: renamedAccount.name }));
+      }
+    }
   }
 
   function handleDelete(id: string, name: string) {

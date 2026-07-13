@@ -107,6 +107,14 @@ describe("parsePortfolioFile", () => {
     expect(parsed.transactions.map((transaction) => transaction.currency)).toEqual(["RUB", "USD", "CNY"]);
   });
 
+  it.each(["0001-01-01", "0099-12-31"])("accepts a four-digit transaction date below year 100: %s", (date) => {
+    const parsed = parsePortfolioFile({
+      ...valid,
+      transactions: [{ ...valid.transactions[0], date }],
+    });
+    expect(parsed.transactions[0].date).toBe(date);
+  });
+
   it("rejects duplicate account IDs, duplicate transaction IDs, and duplicate normalized account names", () => {
     expect(() => parsePortfolioFile({
       ...valid,
