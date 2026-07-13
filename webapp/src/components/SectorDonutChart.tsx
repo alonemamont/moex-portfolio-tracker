@@ -1,9 +1,12 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { CalculatedPosition } from "../types";
+import { useIsMobile } from "../portfolio/useIsMobile";
+import { getChartLegendFontSize } from "./chartResponsive";
 
 const COLORS = ["#35d0c0", "#e8b339", "#f2555f", "#5b8def", "#34c77b", "#c77dff", "#ff9d5c", "#6ee7d8", "#9aa3b5", "#e08ac9"];
 
 export function SectorDonutChart({ positions }: { positions: CalculatedPosition[] }) {
+  const legendFontSize = getChartLegendFontSize(useIsMobile());
   const bySector = new Map<string, number>();
   for (const p of positions) {
     bySector.set(p.sector, (bySector.get(p.sector) ?? 0) + p.positionValue);
@@ -29,7 +32,7 @@ export function SectorDonutChart({ positions }: { positions: CalculatedPosition[
           labelStyle={{ color: "#8891a0" }}
           itemStyle={{ color: "#e7eaee" }}
         />
-        <Legend wrapperStyle={{ color: "#8891a0", fontSize: 12 }} />
+        <Legend wrapperStyle={{ color: "#8891a0", fontSize: legendFontSize }} />
       </PieChart>
     </ResponsiveContainer>
   );
