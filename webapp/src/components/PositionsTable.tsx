@@ -1,9 +1,6 @@
 import { CalculatedPosition, Pair } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
-
-function formatNumber(value: number | null, digits = 2): string {
-  return value === null ? "—" : value.toFixed(digits);
-}
+import { formatNumber } from "./formatPosition";
 
 function formatMoney(value: number | null, digits = 2): string {
   if (value === null) return "—";

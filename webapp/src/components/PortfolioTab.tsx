@@ -13,9 +13,11 @@ import {
   saveOnlyInIndexPref,
 } from "../portfolio/tablePrefs";
 import { PositionsTable } from "./PositionsTable";
+import { PositionsCardList } from "./PositionsCardList";
 import { AddTickerModal } from "./AddTickerModal";
 import { PairPositionsModal } from "./PairPositionsModal";
 import { PortfolioFile } from "../types";
+import { useIsMobile } from "../portfolio/useIsMobile";
 
 const SOURCE = "update";
 
@@ -23,6 +25,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const { file, setFile, liveByTicker, setLiveByTicker, selectedIndex, isUpdating, setIsUpdating } =
     usePortfolio();
   const { addError, clearBySource } = useErrors();
+  const isMobile = useIsMobile();
   const lastAutoSignal = useRef(0);
 
   const [search, setSearch] = useState(() => loadSearchPref());
@@ -150,12 +153,20 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           Только в индексе
         </label>
       </div>
-      <PositionsTable
-        positions={filteredPositions}
-        pairs={file.pairs}
-        onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
-        onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
-      />
+      {isMobile ? (
+        <PositionsCardList
+          positions={filteredPositions}
+          onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
+          onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
+        />
+      ) : (
+        <PositionsTable
+          positions={filteredPositions}
+          pairs={file.pairs}
+          onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
+          onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
+        />
+      )}
       {showAddTicker && (
         <AddTickerModal
           existingPositions={file.positions}

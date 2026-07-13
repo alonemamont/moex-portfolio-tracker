@@ -621,3 +621,176 @@ input[type="checkbox"] {
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+/* Position card (mobile) */
+
+.position-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.position-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-alt);
+}
+
+.position-card__summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.position-card__ticker {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.position-card__name {
+  flex: 1;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.position-card__price {
+  font-family: var(--font-mono);
+}
+
+.position-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.position-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.position-card__label {
+  color: var(--muted);
+}
+
+.position-card__row input[type="number"] {
+  min-height: 44px;
+  min-width: 90px;
+  font-size: 16px;
+  text-align: right;
+}
+
+/* Header (mobile) */
+
+.header__menu-toggle {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .header {
+    position: relative;
+  }
+
+  .header__title-text {
+    display: none;
+  }
+
+  .header__menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .header__actions {
+    display: none;
+  }
+
+  .header__actions--open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 56px;
+    right: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 8px;
+    gap: 8px;
+    z-index: 250;
+    min-width: 200px;
+  }
+
+  .header__actions--open button {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
+/* Mobile (≤600px) — global */
+
+@media (max-width: 600px) {
+  .dashboard {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .tabs button {
+    padding: 12px 10px;
+    min-height: 44px;
+  }
+
+  .modal-backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .modal__actions button {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  button,
+  select,
+  input[type="number"],
+  input[type="text"] {
+    min-height: 44px;
+  }
+
+  input[type="number"],
+  input[type="text"],
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Charts (mobile) */
+
+@media (max-width: 600px) {
+  .history-chart,
+  .sector-chart {
+    padding: 8px 10px;
+  }
+}
