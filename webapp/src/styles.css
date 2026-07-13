@@ -8,6 +8,7 @@
   --muted: #8891a0;
   --accent: #35d0c0;
   --accent-dim: rgba(53, 208, 192, 0.14);
+  --editable-bg: rgba(53, 208, 192, 0.08);
   --up: #34c77b;
   --warn: #e8b339;
   --down: #f2555f;
@@ -329,6 +330,7 @@ input[type="checkbox"] {
 
 .table-scroll {
   overflow-x: auto;
+  overflow-y: visible;
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
@@ -352,7 +354,7 @@ input[type="checkbox"] {
   font-family: var(--font-mono);
 }
 
-.positions-table td:first-child {
+.positions-table td:nth-child(2) {
   font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -372,7 +374,12 @@ input[type="checkbox"] {
   border-bottom-color: var(--accent);
 }
 
+.positions-table td.td-editable {
+  background: var(--editable-bg);
+}
+
 .th-hint {
+  position: relative;
   display: inline-block;
   margin-left: 4px;
   width: 13px;

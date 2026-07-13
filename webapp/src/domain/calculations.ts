@@ -41,3 +41,108 @@ export function computeAverageCompliance(compliances: (number | null)[]): number
   if (valid.length === 0) return null;
   return valid.reduce((sum, c) => sum + c, 0) / valid.length;
 }
+
+export function computeDeviationRub(
+  actualShare: number | null,
+  targetAllocation: number | null,
+  portfolioValue: number
+): number | null {
+  if (actualShare === null || targetAllocation === null) return null;
+  return ((actualShare - targetAllocation) * portfolioValue) / 100;
+}
+
+export interface DeviationEntry {
+  ticker: string;
+  deviationRub: number;
+}
+
+export function findDeviationExtremes(deviations: DeviationEntry[]): {
+  largestSurplus: DeviationEntry | null;
+  largestShortfall: DeviationEntry | null;
+} {
+  if (deviations.length === 0) return { largestSurplus: null, largestShortfall: null };
+
+  let largestSurplus = deviations[0];
+  let largestShortfall = deviations[0];
+  for (const entry of deviations) {
+    if (entry.deviationRub > largestSurplus.deviationRub) largestSurplus = entry;
+    if (entry.deviationRub < largestShortfall.deviationRub) largestShortfall = entry;
+  }
+  return { largestSurplus, largestShortfall };
+}
+
+export function computeDividendYield(dividendPerShare: number, price: number | null): number | null {
+  if (price === null || price === 0) return null;
+  return (dividendPerShare / price) * 100;
+}
+
+export function computeTargetShares(
+  targetAllocation: number | null,
+  portfolioValue: number,
+  price: number | null
+): number | null {
+  if (targetAllocation === null || price === null || price === 0) return null;
+  return Math.round(((targetAllocation / 100) * portfolioValue) / price);
+}
+
+export function computeSharesToBuy(targetShares: number | null, sharesOwned: number): number | null {
+  if (targetShares === null) return null;
+  return targetShares - sharesOwned;
+}
+
+export function computeBuyAmountRub(sharesToBuy: number | null, price: number | null): number | null {
+  if (sharesToBuy === null || price === null) return null;
+  return sharesToBuy * price;
+}
+
+export interface PairInput {
+  tickers: string[];
+  coefficient: number;
+}
+
+export interface PairMemberInput {
+  ticker: string;
+  indexWeight: number;
+  status: IndexStatus;
+  price: number | null;
+  sharesOwned: number;
+}
+
+export interface PairedTargets {
+  targetAllocation: number;
+  actualShare: number | null;
+  compliance: number | null;
+}
+
+export function computeCombinedIndexWeight(
+  members: { indexWeight: number; status: IndexStatus }[]
+): number {
+  return members.reduce((sum, m) => sum + (m.status === "in_index" ? m.indexWeight : 0), 0);
+}
+
+export function computePairedTargets(
+  pair: PairInput,
+  positions: PairMemberInput[],
+  portfolioValue: number
+): PairedTargets {
+  const members = positions.filter((p) => pair.tickers.includes(p.ticker));
+  const combinedIndexWeight = computeCombinedIndexWeight(members);
+  const targetAllocation = combinedIndexWeight * pair.coefficient;
+  const combinedActualValueRub = members.reduce((sum, p) => sum + (p.price ?? 0) * p.sharesOwned, 0);
+  const actualShare = computeActualShare(combinedActualValueRub, portfolioValue);
+  const compliance = computeCompliance(actualShare, targetAllocation);
+  return { targetAllocation, actualShare, compliance };
+}
+
+export function computePairMemberTargetShares(
+  combinedTargetPct: number,
+  combinedIndexWeight: number,
+  memberIndexWeight: number,
+  portfolioValue: number,
+  price: number | null
+): number | null {
+  if (combinedIndexWeight === 0 || price === null || price === 0) return null;
+  const combinedTargetRub = (combinedTargetPct / 100) * portfolioValue;
+  const targetValueRub = combinedTargetRub * (memberIndexWeight / combinedIndexWeight);
+  return Math.round(targetValueRub / price);
+}

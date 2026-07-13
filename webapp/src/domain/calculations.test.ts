@@ -7,6 +7,15 @@ import {
   computeActualShare,
   computeCompliance,
   computeAverageCompliance,
+  computeDeviationRub,
+  findDeviationExtremes,
+  computeDividendYield,
+  computeTargetShares,
+  computeSharesToBuy,
+  computeBuyAmountRub,
+  computeCombinedIndexWeight,
+  computePairedTargets,
+  computePairMemberTargetShares,
 } from "./calculations";
 
 describe("computeTargetAllocation", () => {
@@ -87,5 +96,222 @@ describe("computeAverageCompliance", () => {
   it("returns null when every value is null or the list is empty", () => {
     expect(computeAverageCompliance([null, null])).toBeNull();
     expect(computeAverageCompliance([])).toBeNull();
+  });
+});
+
+describe("computeDeviationRub", () => {
+  it("expresses the actual-vs-target share gap in roubles", () => {
+    // (15% - 10%) * 1000 / 100 = 50
+    expect(computeDeviationRub(15, 10, 1000)).toBeCloseTo(50);
+  });
+
+  it("is negative when actual share is below target (shortfall)", () => {
+    expect(computeDeviationRub(5, 10, 1000)).toBeCloseTo(-50);
+  });
+
+  it("returns null when actualShare is null", () => {
+    expect(computeDeviationRub(null, 10, 1000)).toBeNull();
+  });
+
+  it("returns null when targetAllocation is null (out-of-index position)", () => {
+    expect(computeDeviationRub(15, null, 1000)).toBeNull();
+  });
+});
+
+describe("findDeviationExtremes", () => {
+  it("picks the max as largestSurplus and the min as largestShortfall", () => {
+    const deviations = [
+      { ticker: "A", deviationRub: 50 },
+      { ticker: "B", deviationRub: -80 },
+      { ticker: "C", deviationRub: 20 },
+    ];
+    expect(findDeviationExtremes(deviations)).toEqual({
+      largestSurplus: { ticker: "A", deviationRub: 50 },
+      largestShortfall: { ticker: "B", deviationRub: -80 },
+    });
+  });
+
+  it("returns the same single entry for both when there is only one", () => {
+    const deviations = [{ ticker: "A", deviationRub: 10 }];
+    expect(findDeviationExtremes(deviations)).toEqual({
+      largestSurplus: { ticker: "A", deviationRub: 10 },
+      largestShortfall: { ticker: "A", deviationRub: 10 },
+    });
+  });
+
+  it("returns null for both when the list is empty", () => {
+    expect(findDeviationExtremes([])).toEqual({ largestSurplus: null, largestShortfall: null });
+  });
+});
+
+describe("computeDividendYield", () => {
+  it("expresses dividend per share as a percentage of price", () => {
+    expect(computeDividendYield(2, 40)).toBeCloseTo(5);
+  });
+
+  it("returns null when price is 0", () => {
+    expect(computeDividendYield(2, 0)).toBeNull();
+  });
+
+  it("returns null when price is null (no live price)", () => {
+    expect(computeDividendYield(2, null)).toBeNull();
+  });
+
+  it("is 0 (not null) when there is no dividend but price is valid", () => {
+    expect(computeDividendYield(0, 40)).toBe(0);
+  });
+});
+
+describe("computeTargetShares", () => {
+  it("rounds targetAllocation% of portfolioValue divided by price to whole shares", () => {
+    // 50% of 1000 / 100 = 5
+    expect(computeTargetShares(50, 1000, 100)).toBe(5);
+  });
+
+  it("rounds to the nearest whole share", () => {
+    // 60% of 1200 / 100 = 7.2 -> 7
+    expect(computeTargetShares(60, 1200, 100)).toBe(7);
+  });
+
+  it("returns null when targetAllocation is null (out of index)", () => {
+    expect(computeTargetShares(null, 1000, 100)).toBeNull();
+  });
+
+  it("returns null when price is null", () => {
+    expect(computeTargetShares(50, 1000, null)).toBeNull();
+  });
+
+  it("returns null when price is 0", () => {
+    expect(computeTargetShares(50, 1000, 0)).toBeNull();
+  });
+});
+
+describe("computeSharesToBuy", () => {
+  it("is targetShares minus sharesOwned when more shares are needed", () => {
+    expect(computeSharesToBuy(5, 3)).toBe(2);
+  });
+
+  it("is negative when the position already holds more than the target (sell signal)", () => {
+    expect(computeSharesToBuy(2, 5)).toBe(-3);
+  });
+
+  it("returns null when targetShares is null", () => {
+    expect(computeSharesToBuy(null, 3)).toBeNull();
+  });
+});
+
+describe("computeBuyAmountRub", () => {
+  it("multiplies sharesToBuy by price", () => {
+    expect(computeBuyAmountRub(2, 100)).toBe(200);
+  });
+
+  it("is negative for a sell signal (negative sharesToBuy)", () => {
+    expect(computeBuyAmountRub(-3, 50)).toBe(-150);
+  });
+
+  it("returns null when sharesToBuy is null", () => {
+    expect(computeBuyAmountRub(null, 100)).toBeNull();
+  });
+
+  it("returns null when price is null", () => {
+    expect(computeBuyAmountRub(2, null)).toBeNull();
+  });
+});
+
+describe("computeCombinedIndexWeight", () => {
+  it("sums indexWeight only for in_index members", () => {
+    expect(
+      computeCombinedIndexWeight([
+        { indexWeight: 9, status: "in_index" },
+        { indexWeight: 3, status: "in_index" },
+      ])
+    ).toBe(12);
+  });
+
+  it("treats an out_of_index member's weight as 0", () => {
+    expect(
+      computeCombinedIndexWeight([
+        { indexWeight: 9, status: "in_index" },
+        { indexWeight: 5, status: "out_of_index" },
+      ])
+    ).toBe(9);
+  });
+
+  it("is 0 for an empty member list", () => {
+    expect(computeCombinedIndexWeight([])).toBe(0);
+  });
+});
+
+describe("computePairedTargets", () => {
+  const pair = { tickers: ["SBER", "SBERP"], coefficient: 2 };
+
+  it("combines indexWeight and value across only the pair's own tickers, ignoring other positions", () => {
+    const positions = [
+      { ticker: "SBER", indexWeight: 9, status: "in_index" as const, price: 250, sharesOwned: 10 },
+      { ticker: "SBERP", indexWeight: 3, status: "in_index" as const, price: 200, sharesOwned: 5 },
+      { ticker: "GAZP", indexWeight: 88, status: "in_index" as const, price: 100, sharesOwned: 1 },
+    ];
+    // combinedIndexWeight = 9+3 = 12, targetAllocation = 12*2 = 24
+    // combinedActualValueRub = 250*10 + 200*5 = 3500
+    // portfolioValue = 3500 (GAZP's 100 excluded on purpose to keep actualShare a round number)
+    const result = computePairedTargets(pair, positions, 3500);
+
+    expect(result.targetAllocation).toBe(24);
+    expect(result.actualShare).toBeCloseTo(100);
+    expect(result.compliance).toBeCloseTo(100 / 24);
+  });
+
+  it("treats an out-of-index member's indexWeight as 0 in the combined weight but still counts its value", () => {
+    const positions = [
+      { ticker: "SBER", indexWeight: 9, status: "in_index" as const, price: 250, sharesOwned: 10 },
+      { ticker: "SBERP", indexWeight: 3, status: "out_of_index" as const, price: 200, sharesOwned: 5 },
+    ];
+    // combinedIndexWeight = 9 (SBERP's weight dropped), targetAllocation = 9*2 = 18
+    // combinedActualValueRub = 2500 + 1000 = 3500
+    const result = computePairedTargets(pair, positions, 3500);
+
+    expect(result.targetAllocation).toBe(18);
+    expect(result.actualShare).toBeCloseTo(100);
+  });
+
+  it("gives targetAllocation 0 and null compliance when every member is out of index", () => {
+    const positions = [
+      { ticker: "SBER", indexWeight: 9, status: "out_of_index" as const, price: 250, sharesOwned: 10 },
+      { ticker: "SBERP", indexWeight: 3, status: "out_of_index" as const, price: 200, sharesOwned: 5 },
+    ];
+    const result = computePairedTargets(pair, positions, 3500);
+
+    expect(result.targetAllocation).toBe(0);
+    expect(result.compliance).toBeNull();
+  });
+
+  it("returns a null actualShare when portfolioValue is 0", () => {
+    const positions = [
+      { ticker: "SBER", indexWeight: 9, status: "in_index" as const, price: 250, sharesOwned: 10 },
+      { ticker: "SBERP", indexWeight: 3, status: "in_index" as const, price: 200, sharesOwned: 5 },
+    ];
+    const result = computePairedTargets(pair, positions, 0);
+
+    expect(result.actualShare).toBeNull();
+    expect(result.compliance).toBeNull();
+  });
+});
+
+describe("computePairMemberTargetShares", () => {
+  it("splits the combined target proportionally to the member's own indexWeight and rounds to whole shares", () => {
+    // combinedTargetRub = 12/100 * 3500 = 420; SBER's share = 420 * 9/12 = 315; 315/250 = 1.26 -> 1
+    expect(computePairMemberTargetShares(12, 12, 9, 3500, 250)).toBe(1);
+  });
+
+  it("returns null when the combined index weight is 0", () => {
+    expect(computePairMemberTargetShares(0, 0, 0, 3500, 250)).toBeNull();
+  });
+
+  it("returns null when price is null", () => {
+    expect(computePairMemberTargetShares(12, 12, 9, 3500, null)).toBeNull();
+  });
+
+  it("returns null when price is 0", () => {
+    expect(computePairMemberTargetShares(12, 12, 9, 3500, 0)).toBeNull();
   });
 });

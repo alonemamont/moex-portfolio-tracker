@@ -31,6 +31,9 @@ export interface CalculatedPosition extends Position, LiveData {
   compliance: number | null;
   positionValue: number;
   income: number;
+  dividendYield: number | null;
+  sharesToBuy: number | null;
+  buyAmountRub: number | null;
 }
 
 export interface HistorySnapshotRow {
@@ -47,9 +50,15 @@ export interface HistorySnapshot {
   snapshot: HistorySnapshotRow[];
 }
 
+export interface Pair {
+  tickers: string[];
+  coefficient: number;
+}
+
 export interface PortfolioFile {
   version: 1;
   positions: Position[];
   sectors: Record<string, string>;
   history: HistorySnapshot[];
+  pairs: Pair[];
 }

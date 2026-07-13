@@ -15,7 +15,7 @@ function live(overrides: Partial<LiveData> & { ticker: string }): LiveData {
 }
 
 function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
-  return { version: 1, positions: [], sectors: {}, history: [], ...overrides };
+  return { version: 1, positions: [], sectors: {}, history: [], pairs: [], ...overrides };
 }
 
 describe("computeCalculatedPositionsResult", () => {
@@ -24,6 +24,8 @@ describe("computeCalculatedPositionsResult", () => {
       calculated: [],
       portfolioValue: 0,
       avgCompliance: null,
+      largestSurplus: null,
+      largestShortfall: null,
     });
   });
 
@@ -66,5 +68,78 @@ describe("computeCalculatedPositionsResult", () => {
 
     const [result] = computeCalculatedPositionsResult(f, liveByTicker).calculated;
     expect(result.sector).toBe("Своё");
+  });
+
+  it("computes largestSurplus and largestShortfall from actual-vs-target deviation", () => {
+    const f = file({
+      positions: [
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 10 },
+        { ticker: "SBER", coefficient: 1, sharesOwned: 1 },
+      ],
+    });
+    const liveByTicker = new Map([
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 90, price: 100 })],
+      ["SBER", live({ ticker: "SBER", indexWeight: 10, price: 100 })],
+    ]);
+    // portfolioValue = 1000 + 100 = 1100
+    // GAZP: actualShare ≈ 90.9%, target 90% -> small surplus
+    // SBER: actualShare ≈ 9.1%, target 10% -> small shortfall
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.largestSurplus?.ticker).toBe("GAZP");
+    expect(result.largestShortfall?.ticker).toBe("SBER");
+  });
+
+  it("groups a pair into a single combined deviation entry labeled 'TICKER1+TICKER2', counted once for the extremes", () => {
+    const f = file({
+      positions: [
+        { ticker: "SBER", coefficient: 1, sharesOwned: 10 },
+        { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
+      ],
+      pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
+    });
+    const liveByTicker = new Map([
+      ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
+      ["SBERP", live({ ticker: "SBERP", indexWeight: 3, price: 200 })],
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 88, price: 10 })],
+    ]);
+    // portfolioValue = 2500 + 1000 + 10 = 3510
+    // pair: combinedIndexWeight = 12, targetAllocation = 12, actualShare = 3500/3510*100 ≈ 99.7 -> large surplus
+    // GAZP: targetAllocation = 88, actualShare = 10/3510*100 ≈ 0.28 -> large shortfall
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.largestSurplus?.ticker).toBe("SBER+SBERP");
+    expect(result.largestShortfall?.ticker).toBe("GAZP");
+  });
+
+  it("excludes a pair from the dashboard extremes when every member is out of the index, even though it is still held", () => {
+    const f = file({
+      positions: [
+        { ticker: "OLD1", coefficient: 1, sharesOwned: 10 },
+        { ticker: "OLD2", coefficient: 1, sharesOwned: 5 },
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
+      ],
+      pairs: [{ tickers: ["OLD1", "OLD2"], coefficient: 1 }],
+    });
+    const liveByTicker = new Map([
+      ["OLD1", live({ ticker: "OLD1", status: "out_of_index", indexWeight: 0, price: 250 })],
+      ["OLD2", live({ ticker: "OLD2", status: "out_of_index", indexWeight: 0, price: 200 })],
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 5, price: 100 })],
+    ]);
+    // OLD1+OLD2: combinedIndexWeight = 0, targetAllocation = 0 (not null) per computePairedTargets,
+    // but both members are out_of_index, so the pair must NOT appear in largestSurplus/largestShortfall
+    // even though it still holds value (2500+1000=3500) and would otherwise look like a huge "surplus"
+    // against a targetAllocation of 0.
+    // GAZP: targetAllocation = 5, actualShare = 100/3600*100 ≈ 2.78 -> shortfall (the only real candidate)
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.largestSurplus?.ticker).not.toBe("OLD1+OLD2");
+    expect(result.largestShortfall?.ticker).not.toBe("OLD1+OLD2");
+    expect(result.largestSurplus?.ticker).toBe("GAZP");
+    expect(result.largestShortfall?.ticker).toBe("GAZP");
   });
 });

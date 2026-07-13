@@ -10,6 +10,7 @@ const baseFile: PortfolioFile = {
   positions: [{ ticker: "GAZP", coefficient: 1, sharesOwned: 10 }],
   sectors: {},
   history: [],
+  pairs: [],
 };
 
 describe("runMarketUpdate", () => {
