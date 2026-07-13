@@ -642,3 +642,52 @@ input[type="checkbox"] {
   font-size: 16px;
   text-align: right;
 }
+
+/* Header (mobile) */
+
+.header__menu-toggle {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .header {
+    position: relative;
+  }
+
+  .header__title-text {
+    display: none;
+  }
+
+  .header__menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .header__actions {
+    display: none;
+  }
+
+  .header__actions--open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 56px;
+    right: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 8px;
+    gap: 8px;
+    z-index: 250;
+    min-width: 200px;
+  }
+
+  .header__actions--open button {
+    min-height: 44px;
+    width: 100%;
+  }
+}
