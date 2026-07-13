@@ -603,6 +603,7 @@ input[type="checkbox"] {
 .account-row label { flex: 1; }
 
 @media (max-width: 700px) {
+  .tabs { flex-wrap: wrap; gap: 0 16px; padding-inline: 12px; }
   .transaction-controls, .account-add-row, .account-row { align-items: stretch; flex-direction: column; }
   .transactions-list { overflow: visible; border: 0; }
   .transactions-table, .transactions-table tbody, .transactions-table tr, .transactions-table td { display: block; width: 100%; }
