@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useRef, useState } from "react";
 import { usePortfolio } from "../portfolio/usePortfolio";
 import { useErrors } from "../errors/useErrors";
-import { runMarketUpdate } from "../portfolio/runMarketUpdate";
+import { mergeCompletedMarketUpdate, runMarketUpdate } from "../portfolio/runMarketUpdate";
 import { useCalculatedPositions } from "../portfolio/useCalculatedPositions";
 import { filterPositions } from "../portfolio/filterPositions";
 import {
@@ -47,7 +47,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         liveByTicker,
         selectedIndex
       );
-      setFile(updated);
+      setFile((current) => current ? mergeCompletedMarketUpdate(current, updated) : current);
       setLiveByTicker(newLiveByTicker);
     } catch (error) {
       addError(SOURCE, `Не удалось обновить рыночные данные: ${(error as Error).message}`);

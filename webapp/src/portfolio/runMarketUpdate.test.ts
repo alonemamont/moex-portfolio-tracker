@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { runMarketUpdate } from "./runMarketUpdate";
+import { mergeCompletedMarketUpdate, runMarketUpdate } from "./runMarketUpdate";
 import * as marketDataModule from "../iss/marketData";
 import { PortfolioFile, LiveData } from "../types";
 
@@ -14,6 +14,42 @@ const baseFile: PortfolioFile = {
   brokerAccounts: [],
   transactions: [],
 };
+
+describe("mergeCompletedMarketUpdate", () => {
+  it("keeps concurrent broker accounts and transactions from the latest file", () => {
+    const latest: PortfolioFile = {
+      ...baseFile,
+      brokerAccounts: [{ id: "account-1", name: "Broker" }],
+      transactions: [
+        {
+          id: "transaction-1",
+          type: "deposit",
+          amount: 1000,
+          currency: "RUB",
+          date: "2026-07-13",
+          accountId: "account-1",
+        },
+      ],
+    };
+    const completedMarketUpdate: PortfolioFile = {
+      ...baseFile,
+      history: [
+        {
+          timestamp: "2026-07-13T10:00:00.000Z",
+          portfolioValue: 1000,
+          avgCompliance: null,
+          snapshot: [],
+        },
+      ],
+    };
+
+    const merged = mergeCompletedMarketUpdate(latest, completedMarketUpdate);
+
+    expect(merged.brokerAccounts).toEqual(latest.brokerAccounts);
+    expect(merged.transactions).toEqual(latest.transactions);
+    expect(merged.history).toEqual(completedMarketUpdate.history);
+  });
+});
 
 describe("runMarketUpdate", () => {
   it("merges fresh market data into positions and appends a history snapshot", async () => {
