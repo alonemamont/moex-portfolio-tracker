@@ -51,6 +51,14 @@ export function PairPositionsModal({
     <div className="modal-backdrop" role="dialog" aria-label="Парные позиции">
       <div className="modal">
         <h2>Парные позиции</h2>
+        <div className="modal__actions">
+          <button type="button" onClick={() => onSave(draftPairs)}>
+            Сохранить
+          </button>
+          <button type="button" onClick={onClose}>
+            Отмена
+          </button>
+        </div>
         <table>
           <tbody>
             {draftPairs.map((pair, index) => (
@@ -73,17 +81,8 @@ export function PairPositionsModal({
             ))}
           </tbody>
         </table>
+        <hr className="modal__divider" />
         <div className="add-ticker__field">
-          {availableTickers.map((p) => (
-            <label key={p.ticker}>
-              <input
-                type="checkbox"
-                checked={selectedTickers.has(p.ticker)}
-                onChange={() => toggleTicker(p.ticker)}
-              />
-              {p.ticker}
-            </label>
-          ))}
           <input
             type="number"
             step="0.01"
@@ -95,13 +94,17 @@ export function PairPositionsModal({
             Добавить
           </button>
         </div>
-        <div className="modal__actions">
-          <button type="button" onClick={() => onSave(draftPairs)}>
-            Сохранить
-          </button>
-          <button type="button" onClick={onClose}>
-            Отмена
-          </button>
+        <div className="add-ticker__field">
+          {availableTickers.map((p) => (
+            <label key={p.ticker}>
+              <input
+                type="checkbox"
+                checked={selectedTickers.has(p.ticker)}
+                onChange={() => toggleTicker(p.ticker)}
+              />
+              {p.ticker}
+            </label>
+          ))}
         </div>
       </div>
     </div>

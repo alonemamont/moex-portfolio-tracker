@@ -257,6 +257,12 @@ input[type="checkbox"] {
   margin-top: 14px;
 }
 
+.modal__divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 14px 0;
+}
+
 .add-ticker__field {
   display: flex;
   flex-direction: column;
