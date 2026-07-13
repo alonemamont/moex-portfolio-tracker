@@ -152,6 +152,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       </div>
       <PositionsTable
         positions={filteredPositions}
+        pairs={file.pairs}
         onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
         onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
       />

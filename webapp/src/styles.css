@@ -345,6 +345,30 @@ input[type="checkbox"] {
   background: var(--panel-alt);
 }
 
+.positions-table th.th-group {
+  text-align: center;
+}
+
+.positions-table tbody tr.paired-row {
+  background: var(--panel-alt);
+}
+
+.positions-table tbody tr.paired-row:nth-child(even) {
+  background: var(--panel-alt);
+}
+
+.positions-table tbody tr.paired-row td:first-child {
+  border-left: 2px solid var(--accent);
+}
+
+.positions-table tbody tr.paired-row--first td {
+  border-top: 1px solid var(--accent);
+}
+
+.positions-table tbody tr.paired-row--last td {
+  border-bottom: 1px solid var(--accent);
+}
+
 .positions-table tbody tr:hover {
   background: var(--accent-dim);
 }
