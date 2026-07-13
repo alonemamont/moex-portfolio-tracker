@@ -1,9 +1,6 @@
 import { CalculatedPosition } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
-
-function formatNumber(value: number | null, digits = 2): string {
-  return value === null ? "—" : value.toFixed(digits);
-}
+import { formatNumber } from "./formatPosition";
 
 function headerWithHint(label: string, hint: string) {
   return (
