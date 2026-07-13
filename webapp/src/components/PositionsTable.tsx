@@ -72,10 +72,7 @@ export function PositionsTable({
             <th rowSpan={2}></th>
             <th rowSpan={2}>Тикер</th>
             <th rowSpan={2}>Название</th>
-            <th rowSpan={2} className="num">Вес в индексе, %</th>
-            <th rowSpan={2} className="num">
-              {headerWithHint("Факт. вес, %", "Текущая доля позиции в стоимости портфеля, %")}
-            </th>
+            <th colSpan={2} className="num th-group">Вес %</th>
             <th rowSpan={2} className="num">Цена</th>
             <th rowSpan={2} className="num">Лотность</th>
             <th rowSpan={2} className="num">
@@ -89,18 +86,23 @@ export function PositionsTable({
             <th rowSpan={2} className="num">
               {headerWithHint("Соответствие", "Факт. доля ÷ Цель (1.0 = точное совпадение)")}
             </th>
-            <th rowSpan={2} className="num">Дивиденд</th>
-            <th rowSpan={2} className="num">Див доходность, %</th>
-            <th rowSpan={2} className="num">
-              {headerWithHint("Доход", "Дивиденд на акцию × количество акций")}
-            </th>
+            <th colSpan={3} className="num th-group">Дивиденды</th>
             <th rowSpan={2}>Сектор</th>
           </tr>
           <tr>
-            <th className="num">Штук</th>
-            <th className="num">Стоимость</th>
-            <th className="num">Штук</th>
-            <th className="num">На сумму</th>
+            <th className="num th-group-start">в индексе</th>
+            <th className="num th-group-end">
+              {headerWithHint("фактический", "Текущая доля позиции в стоимости портфеля, %")}
+            </th>
+            <th className="num th-group-start">Штук</th>
+            <th className="num th-group-end">Стоимость</th>
+            <th className="num th-group-start">Штук</th>
+            <th className="num th-group-end">На сумму</th>
+            <th className="num th-group-start">Размер ₽</th>
+            <th className="num">Доходность %</th>
+            <th className="num th-group-end">
+              {headerWithHint("Доход ₽", "Дивиденд на акцию × количество акций")}
+            </th>
           </tr>
         </thead>
         <tbody>

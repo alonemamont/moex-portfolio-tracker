@@ -348,6 +348,23 @@ input[type="checkbox"] {
 
 .positions-table th.th-group {
   text-align: center;
+  background: var(--accent-dim);
+  border-bottom: none;
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+}
+
+/* thead row 2 has no cells outside th-group subcolumns; if that changes, this needs a scoping class */
+.positions-table thead tr:nth-child(2) th {
+  background: var(--accent-dim);
+}
+
+.positions-table th.th-group-start {
+  border-left: 1px solid var(--accent);
+}
+
+.positions-table th.th-group-end {
+  border-right: 1px solid var(--accent);
 }
 
 .positions-table tbody tr.paired-row {
