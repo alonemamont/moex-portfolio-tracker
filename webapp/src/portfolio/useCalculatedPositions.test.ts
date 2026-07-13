@@ -90,4 +90,28 @@ describe("computeCalculatedPositionsResult", () => {
     expect(result.largestSurplus?.ticker).toBe("GAZP");
     expect(result.largestShortfall?.ticker).toBe("SBER");
   });
+
+  it("groups a pair into a single combined deviation entry labeled 'TICKER1+TICKER2', counted once for the extremes", () => {
+    const f = file({
+      positions: [
+        { ticker: "SBER", coefficient: 1, sharesOwned: 10 },
+        { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
+        { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
+      ],
+      pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
+    });
+    const liveByTicker = new Map([
+      ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
+      ["SBERP", live({ ticker: "SBERP", indexWeight: 3, price: 200 })],
+      ["GAZP", live({ ticker: "GAZP", indexWeight: 88, price: 10 })],
+    ]);
+    // portfolioValue = 2500 + 1000 + 10 = 3510
+    // pair: combinedIndexWeight = 12, targetAllocation = 12, actualShare = 3500/3510*100 ≈ 99.7 -> large surplus
+    // GAZP: targetAllocation = 88, actualShare = 10/3510*100 ≈ 0.28 -> large shortfall
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.largestSurplus?.ticker).toBe("SBER+SBERP");
+    expect(result.largestShortfall?.ticker).toBe("GAZP");
+  });
 });

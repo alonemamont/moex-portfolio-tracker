@@ -31,7 +31,7 @@ async function computeMarketSnapshot(
   );
 
   const resolveSector = createSectorResolver(SECTORS_DEFAULT, currentFile.sectors);
-  const calculated = buildCalculatedPositions(positions, liveByTicker, resolveSector);
+  const calculated = buildCalculatedPositions(positions, liveByTicker, resolveSector, currentFile.pairs);
   const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
 
   return { positions, liveByTicker, calculated, portfolioValue };

@@ -29,17 +29,31 @@ export function computeCalculatedPositionsResult(
   }
 
   const resolveSector = createSectorResolver(SECTORS_DEFAULT, file.sectors);
-  const calculated = buildCalculatedPositions(file.positions, liveByTicker, resolveSector);
+  const calculated = buildCalculatedPositions(file.positions, liveByTicker, resolveSector, file.pairs);
   const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
   const avgCompliance = computeAverageCompliance(calculated.map((p) => p.compliance));
 
-  const deviations: DeviationEntry[] = calculated
-    .filter((p) => p.targetAllocation !== null && p.actualShare !== null)
+  const pairedTickers = new Set(file.pairs.flatMap((pair) => pair.tickers));
+
+  const soloDeviations: DeviationEntry[] = calculated
+    .filter((p) => !pairedTickers.has(p.ticker) && p.targetAllocation !== null && p.actualShare !== null)
     .map((p) => ({
       ticker: p.ticker,
       deviationRub: computeDeviationRub(p.actualShare, p.targetAllocation, portfolioValue) as number,
     }));
-  const { largestSurplus, largestShortfall } = findDeviationExtremes(deviations);
+
+  const pairDeviations: DeviationEntry[] = file.pairs.flatMap((pair) => {
+    const member = calculated.find((p) => pair.tickers.includes(p.ticker));
+    if (!member || member.targetAllocation === null || member.actualShare === null) return [];
+    return [
+      {
+        ticker: pair.tickers.join("+"),
+        deviationRub: computeDeviationRub(member.actualShare, member.targetAllocation, portfolioValue) as number,
+      },
+    ];
+  });
+
+  const { largestSurplus, largestShortfall } = findDeviationExtremes([...soloDeviations, ...pairDeviations]);
 
   return { calculated, portfolioValue, avgCompliance, largestSurplus, largestShortfall };
 }
