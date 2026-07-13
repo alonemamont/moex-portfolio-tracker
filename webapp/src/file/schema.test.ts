@@ -47,7 +47,8 @@ describe("parsePortfolioFile", () => {
   });
 
   it("defaults pairs to [] when the field is absent (old files without the pairs field)", () => {
-    const { pairs, ...withoutPairs } = valid;
+    const withoutPairs: Record<string, unknown> = { ...valid };
+    delete withoutPairs.pairs;
     expect(parsePortfolioFile(withoutPairs)).toEqual({ ...withoutPairs, pairs: [] });
   });
 
