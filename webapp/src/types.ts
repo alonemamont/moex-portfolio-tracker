@@ -5,11 +5,19 @@ export const STATUS_LABELS: Record<IndexStatus, string> = {
   out_of_index: "вне индекса",
 };
 
+/** Один источник количества акций от брокерского подключения. */
+export interface BrokerHolding {
+  connectionId: string;
+  shares: number;
+  syncedAt: string;
+}
+
 /** Ручные поля пользователя — никогда не перезаписываются обновлением рынка. */
 export interface Position {
   ticker: string;
   coefficient: number;
   sharesOwned: number;
+  brokerHoldings?: BrokerHolding[];
 }
 
 /** Live-данные с ISS, пересчитываются заново при каждой загрузке/обновлении. */
@@ -34,6 +42,8 @@ export interface CalculatedPosition extends Position, LiveData {
   dividendYield: number | null;
   sharesToBuy: number | null;
   buyAmountRub: number | null;
+  /** file.sharesOwned до добавления брокерских источников — исходное ручное значение. */
+  manualSharesOwned?: number;
 }
 
 export interface HistorySnapshotRow {
@@ -55,10 +65,25 @@ export interface Pair {
   coefficient: number;
 }
 
+export interface EncryptedToken {
+  ciphertext: string;
+  iv: string;
+  salt: string;
+}
+
+export interface BrokerConnection {
+  id: string;
+  brokerId: string;
+  accountId: string;
+  label: string;
+  encryptedToken: EncryptedToken;
+}
+
 export interface PortfolioFile {
   version: 1;
   positions: Position[];
   sectors: Record<string, string>;
   history: HistorySnapshot[];
   pairs: Pair[];
+  brokerConnections: BrokerConnection[];
 }

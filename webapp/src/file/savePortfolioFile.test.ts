@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { saveViaFileSystemAccess, downloadPortfolioFile } from "./savePortfolioFile";
 import { PortfolioFile } from "../types";
 
-const sample: PortfolioFile = { version: 1, positions: [], sectors: {}, history: [], pairs: [] };
+const sample: PortfolioFile = { version: 1, positions: [], sectors: {}, history: [], pairs: [], brokerConnections: [] };
 
 describe("saveViaFileSystemAccess", () => {
   it("writes the JSON-serialized file to the given handle and closes the writable", async () => {
