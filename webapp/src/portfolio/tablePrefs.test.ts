@@ -4,6 +4,8 @@ import {
   saveSearchPref,
   loadHideEmptyPref,
   saveHideEmptyPref,
+  loadOnlyInIndexPref,
+  saveOnlyInIndexPref,
 } from "./tablePrefs";
 
 beforeEach(() => {
@@ -67,5 +69,36 @@ describe("hideEmpty pref", () => {
       throw new Error("blocked");
     });
     expect(() => saveHideEmptyPref(true)).not.toThrow();
+  });
+});
+
+describe("onlyInIndex pref", () => {
+  it("defaults to false when nothing stored", () => {
+    expect(loadOnlyInIndexPref()).toBe(false);
+  });
+
+  it("round-trips true", () => {
+    saveOnlyInIndexPref(true);
+    expect(loadOnlyInIndexPref()).toBe(true);
+  });
+
+  it("round-trips false after being true", () => {
+    saveOnlyInIndexPref(true);
+    saveOnlyInIndexPref(false);
+    expect(loadOnlyInIndexPref()).toBe(false);
+  });
+
+  it("returns default when localStorage.getItem throws", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(loadOnlyInIndexPref()).toBe(false);
+  });
+
+  it("does not throw when localStorage.setItem throws", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(() => saveOnlyInIndexPref(true)).not.toThrow();
   });
 });
