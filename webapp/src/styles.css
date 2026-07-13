@@ -612,5 +612,6 @@ input[type="checkbox"] {
   .transactions-table td { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 8px; padding: 5px 0; border: 0; text-align: left !important; white-space: normal; overflow-wrap: anywhere; }
   .transactions-table td::before { content: attr(data-label); color: var(--muted); font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; }
   .transaction-actions { display: flex !important; grid-template-columns: none !important; }
-  .transaction-actions::before { flex: 0 0 97px; }
+  .transaction-actions::before { flex: 0 1 97px; }
+  .transaction-actions button { padding-inline: 10px; white-space: nowrap; }
 }
