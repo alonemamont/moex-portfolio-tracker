@@ -141,7 +141,9 @@ button:disabled {
 
 input[type="text"],
 input[type="number"],
-select {
+input[type="date"],
+select,
+textarea {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--fg);
@@ -153,7 +155,9 @@ select {
 
 input[type="text"]:focus,
 input[type="number"]:focus,
-select:focus {
+input[type="date"]:focus,
+select:focus,
+textarea:focus {
   border-color: var(--accent);
 }
 
@@ -571,4 +575,41 @@ input[type="checkbox"] {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.5;
+}
+
+/* Transactions */
+
+.transactions-tab { display: flex; flex-direction: column; gap: 14px; }
+.transaction-toolbar { display: flex; flex-direction: column; gap: 12px; }
+.transaction-summaries { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.transaction-summary { display: grid; gap: 4px; padding: 12px; background: var(--panel); border: 1px solid var(--line); }
+.transaction-summary strong { color: var(--accent); font-family: var(--font-mono); }
+.transaction-summary span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.transaction-controls { display: flex; align-items: end; gap: 8px; }
+.transaction-controls label, .transaction-form label, .accounts-modal label { display: grid; gap: 5px; color: var(--muted); font-size: 0.8rem; }
+.transaction-form { width: min(440px, calc(100vw - 24px)); display: grid; gap: 10px; }
+.transaction-form textarea { min-height: 80px; resize: vertical; }
+.field-error { color: var(--down); font-size: 0.75rem; }
+.transactions-list { overflow-x: auto; border: 1px solid var(--line); }
+.transactions-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.transactions-table th, .transactions-table td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+.transactions-table th { color: var(--muted); background: var(--panel); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; }
+.transactions-table td.num { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
+.transaction-actions { display: flex; gap: 6px; }
+.empty-state { color: var(--muted); }
+.transaction-empty { padding: 32px; text-align: center; border: 1px dashed var(--line); background: var(--panel); }
+.account-add-row, .account-row { display: flex; align-items: end; gap: 8px; }
+.account-list { display: grid; gap: 8px; margin-top: 14px; }
+.account-row label { flex: 1; }
+
+@media (max-width: 700px) {
+  .transaction-controls, .account-add-row, .account-row { align-items: stretch; flex-direction: column; }
+  .transactions-list { overflow: visible; border: 0; }
+  .transactions-table, .transactions-table tbody, .transactions-table tr, .transactions-table td { display: block; width: 100%; }
+  .transactions-table thead { display: none; }
+  .transactions-table tr { margin-bottom: 10px; padding: 10px; background: var(--panel); border: 1px solid var(--line); }
+  .transactions-table td { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 8px; padding: 5px 0; border: 0; text-align: left !important; white-space: normal; overflow-wrap: anywhere; }
+  .transactions-table td::before { content: attr(data-label); color: var(--muted); font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; }
+  .transaction-actions { display: flex !important; grid-template-columns: none !important; }
+  .transaction-actions::before { flex: 0 0 97px; }
 }
