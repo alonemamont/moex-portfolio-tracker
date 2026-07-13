@@ -9,11 +9,15 @@ import {
   saveSearchPref,
   loadHideEmptyPref,
   saveHideEmptyPref,
+  loadOnlyInIndexPref,
+  saveOnlyInIndexPref,
 } from "../portfolio/tablePrefs";
 import { PositionsTable } from "./PositionsTable";
+import { PositionsCardList } from "./PositionsCardList";
 import { AddTickerModal } from "./AddTickerModal";
 import { PairPositionsModal } from "./PairPositionsModal";
 import { PortfolioFile } from "../types";
+import { useIsMobile } from "../portfolio/useIsMobile";
 
 const SOURCE = "update";
 
@@ -21,10 +25,12 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const { file, setFile, liveByTicker, setLiveByTicker, selectedIndex, isUpdating, setIsUpdating } =
     usePortfolio();
   const { addError, clearBySource } = useErrors();
+  const isMobile = useIsMobile();
   const lastAutoSignal = useRef(0);
 
   const [search, setSearch] = useState(() => loadSearchPref());
   const [hideEmpty, setHideEmpty] = useState(() => loadHideEmptyPref());
+  const [onlyInIndex, setOnlyInIndex] = useState(() => loadOnlyInIndexPref());
   const [showAddTicker, setShowAddTicker] = useState(false);
   const [showPairPositions, setShowPairPositions] = useState(false);
 
@@ -35,6 +41,10 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   useEffect(() => {
     saveHideEmptyPref(hideEmpty);
   }, [hideEmpty]);
+
+  useEffect(() => {
+    saveOnlyInIndexPref(onlyInIndex);
+  }, [onlyInIndex]);
 
   async function handleUpdate(fileOverride?: PortfolioFile) {
     const target = fileOverride ?? file;
@@ -69,8 +79,8 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const { calculated } = useCalculatedPositions();
 
   const filteredPositions = useMemo(
-    () => filterPositions(calculated, search, hideEmpty),
-    [calculated, search, hideEmpty]
+    () => filterPositions(calculated, file?.pairs ?? [], search, hideEmpty, onlyInIndex),
+    [calculated, file, search, hideEmpty, onlyInIndex]
   );
 
   if (!file) return null;
@@ -134,12 +144,29 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           />
           Скрывать пустые позиции
         </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={onlyInIndex}
+            onChange={(e) => setOnlyInIndex(e.target.checked)}
+          />
+          Только в индексе
+        </label>
       </div>
-      <PositionsTable
-        positions={filteredPositions}
-        onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
-        onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
-      />
+      {isMobile ? (
+        <PositionsCardList
+          positions={filteredPositions}
+          onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
+          onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
+        />
+      ) : (
+        <PositionsTable
+          positions={filteredPositions}
+          pairs={file.pairs}
+          onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
+          onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
+        />
+      )}
       {showAddTicker && (
         <AddTickerModal
           existingPositions={file.positions}
