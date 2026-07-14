@@ -55,6 +55,22 @@ describe("buildSyncDiff", () => {
     expect(rows).toEqual([{ ticker: "GAZP", status: "existing", previousShares: 0, newShares: 4 }]);
   });
 
+  it("zeroes out only this connection's contribution when the ticker is held by two connections and disappears from this connection's response", () => {
+    const existing: Position[] = [
+      {
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 3,
+        brokerHoldings: [
+          { connectionId: "conn-1", shares: 10, syncedAt: "2026-01-01" },
+          { connectionId: "conn-2", shares: 20, syncedAt: "2026-01-01" },
+        ],
+      },
+    ];
+    const rows = buildSyncDiff("conn-1", [], existing, alwaysTradeable);
+    expect(rows).toEqual([{ ticker: "GAZP", status: "existing", previousShares: 10, newShares: 0 }]);
+  });
+
   it("matches tickers case-insensitively", () => {
     const existing: Position[] = [
       {
@@ -125,6 +141,32 @@ describe("applySyncDiff", () => {
         { connectionId: "conn-1", shares: 4, syncedAt: "2026-07-13T00:00:00.000Z" },
       ])
     );
+  });
+
+  it("removes conn-1's holding but leaves conn-2's holding and manual sharesOwned untouched when a position is synced from two connections and conn-1's ticker disappears", () => {
+    const rows: SyncDiffRow[] = [{ ticker: "GAZP", status: "existing", previousShares: 10, newShares: 0 }];
+    const initial = file([
+      {
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 3,
+        brokerHoldings: [
+          { connectionId: "conn-1", shares: 10, syncedAt: "2026-01-01" },
+          { connectionId: "conn-2", shares: 20, syncedAt: "2026-01-01" },
+        ],
+      },
+    ]);
+
+    const result = applySyncDiff(initial, "conn-1", rows, "2026-07-13T00:00:00.000Z");
+
+    expect(result.positions).toEqual([
+      {
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 3,
+        brokerHoldings: [{ connectionId: "conn-2", shares: 20, syncedAt: "2026-01-01" }],
+      },
+    ]);
   });
 
   it("creates a new position with coefficient 1 for a 'new' status row", () => {
