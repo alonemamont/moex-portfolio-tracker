@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
 
 const listAccounts = vi.fn();
@@ -106,5 +107,12 @@ describe("AddBrokerConnectionForm", () => {
     render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={onCancel} />);
     fireEvent.click(screen.getByText("Отмена"));
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no detectable a11y violations", async () => {
+    const { container } = render(
+      <AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />
+    );
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

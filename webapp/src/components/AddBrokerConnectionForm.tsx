@@ -71,6 +71,7 @@ export function AddBrokerConnectionForm({
       )}
       <div className="add-ticker__field">
         <select
+          aria-label="Брокер"
           value={brokerId}
           onChange={(e) => {
             setBrokerId(e.target.value);
@@ -99,7 +100,11 @@ export function AddBrokerConnectionForm({
       {error && <span className="add-ticker__status">{error}</span>}
       {accounts && (
         <div className="add-ticker__field">
-          <select value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+          <select
+            aria-label="Счёт брокера"
+            value={selectedAccountId}
+            onChange={(e) => setSelectedAccountId(e.target.value)}
+          >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}

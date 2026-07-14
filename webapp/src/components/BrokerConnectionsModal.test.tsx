@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import { ErrorProvider } from "../errors/ErrorContext";
 import { ErrorPanel } from "../errors/ErrorPanel";
 import { BrokerConnectionsModal } from "./BrokerConnectionsModal";
@@ -188,5 +189,11 @@ describe("BrokerConnectionsModal", () => {
     renderModal(makeFile([]), vi.fn(), onClose);
     fireEvent.click(screen.getByText("Закрыть"));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no detectable a11y violations when a connection is locked", async () => {
+    const connection = await makeConnection();
+    const { container } = renderModal(makeFile([connection]));
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

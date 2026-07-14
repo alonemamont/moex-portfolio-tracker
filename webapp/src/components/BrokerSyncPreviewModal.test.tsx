@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import { BrokerSyncPreviewModal } from "./BrokerSyncPreviewModal";
 import { SyncDiffRow } from "../brokers/syncDiff";
 
@@ -63,5 +64,17 @@ describe("BrokerSyncPreviewModal", () => {
 
     fireEvent.click(screen.getByText("Отмена"));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no detectable a11y violations", async () => {
+    const rows: SyncDiffRow[] = [
+      { ticker: "GAZP", status: "existing", previousShares: 5, newShares: 10 },
+      { ticker: "NEWTICK", status: "new", previousShares: 0, newShares: 3 },
+      { ticker: "BADTICK", status: "unresolved", previousShares: 0, newShares: 0 },
+    ];
+    const { container } = render(
+      <BrokerSyncPreviewModal connectionLabel="Т-Банк" rows={rows} onConfirm={vi.fn()} onClose={vi.fn()} />
+    );
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
