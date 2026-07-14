@@ -3,7 +3,9 @@ import { switchIndex } from "./runMarketUpdate";
 import * as marketDataModule from "../iss/marketData";
 import { PortfolioFile } from "../types";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const baseFile: PortfolioFile = {
   version: 1,

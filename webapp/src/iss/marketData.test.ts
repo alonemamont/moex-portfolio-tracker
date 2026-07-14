@@ -3,7 +3,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { fetchMarketData } from "./marketData";
 import * as client from "./client";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("fetchMarketData", () => {
   it("unions existing portfolio tickers with the fresh index composition before fetching securities/dividends", async () => {

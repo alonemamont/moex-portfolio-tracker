@@ -6,21 +6,11 @@ import {
   resolveFinamAsset,
   parseFinamQuantity,
 } from "./client";
+import { mockFetchOnce } from "../../testUtils/mockFetch";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-function mockFetchOnce(body: unknown, ok = true, status = 200) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn().mockResolvedValue({
-      ok,
-      status,
-      json: () => Promise.resolve(body),
-    })
-  );
-}
 
 describe("exchangeFinamSecret", () => {
   it("posts the secret to /v1/sessions and returns the JWT", async () => {

@@ -3,7 +3,9 @@ import { createEmptyPortfolio } from "./createEmptyPortfolio";
 import * as client from "../iss/client";
 import { DEFAULT_INDEX_ID } from "../domain/indices";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("createEmptyPortfolio", () => {
   it("seeds one position per current index ticker with coefficient 1 and sharesOwned 0", async () => {
