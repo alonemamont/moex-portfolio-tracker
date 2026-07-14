@@ -1,20 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { fetchTbankAccounts, fetchTbankPortfolio, resolveTbankTicker, quantityToShares } from "./client";
+import { mockFetchOnce } from "../../testUtils/mockFetch";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-function mockFetchOnce(body: unknown, ok = true, status = 200) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn().mockResolvedValue({
-      ok,
-      status,
-      json: () => Promise.resolve(body),
-    })
-  );
-}
 
 describe("fetchTbankAccounts", () => {
   it("posts to UsersService/GetAccounts with a bearer token and returns the accounts array", async () => {
