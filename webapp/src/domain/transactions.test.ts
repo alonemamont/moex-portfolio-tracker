@@ -16,6 +16,7 @@ function file(transactions: Transaction[] = []): PortfolioFile {
     sectors: {},
     history: [],
     pairs: [],
+    brokerConnections: [],
     brokerAccounts: [{ id: "account-1", name: "Основной" }],
     transactions,
   };

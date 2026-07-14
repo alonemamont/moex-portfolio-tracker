@@ -1,4 +1,4 @@
-import { IndexStatus } from "../types";
+import { IndexStatus, Position } from "../types";
 
 export function computeTargetAllocation(
   indexWeight: number,
@@ -145,4 +145,9 @@ export function computePairMemberTargetShares(
   const combinedTargetRub = (combinedTargetPct / 100) * portfolioValue;
   const targetValueRub = combinedTargetRub * (memberIndexWeight / combinedIndexWeight);
   return Math.round(targetValueRub / price);
+}
+
+export function computeTotalSharesOwned(position: Pick<Position, "sharesOwned" | "brokerHoldings">): number {
+  const brokerShares = (position.brokerHoldings ?? []).reduce((sum, h) => sum + h.shares, 0);
+  return position.sharesOwned + brokerShares;
 }

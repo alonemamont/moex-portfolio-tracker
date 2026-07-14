@@ -7,6 +7,7 @@ function position(overrides: Partial<CalculatedPosition> = {}): CalculatedPositi
     ticker: "GAZP",
     coefficient: 1.5,
     sharesOwned: 10,
+    manualSharesOwned: 10,
     shortName: "Газпром",
     indexWeight: 12.3456,
     price: 150.5,

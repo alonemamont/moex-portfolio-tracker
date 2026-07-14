@@ -22,6 +22,7 @@ function makePosition(overrides: Partial<CalculatedPosition>): CalculatedPositio
     dividendYield: null,
     sharesToBuy: null,
     buyAmountRub: null,
+    manualSharesOwned: 0,
     ...overrides,
   };
 }

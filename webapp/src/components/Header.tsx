@@ -14,6 +14,7 @@ import {
   saveViaFileSystemAccessNew,
   downloadPortfolioFile,
 } from "../file/savePortfolioFile";
+import { BrokerConnectionsModal } from "./BrokerConnectionsModal";
 
 const SOURCE = "file";
 const INDEX_SOURCE = "index-switch";
@@ -33,6 +34,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
   } = usePortfolio();
   const { addError, clearBySource } = useErrors();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showBrokerConnections, setShowBrokerConnections] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleLoadClick() {
@@ -117,71 +119,91 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
   }
 
   return (
-    <header className="header">
-      <h1 className="header__title">
-        <select
-          className="header__brand"
-          value={selectedIndex}
-          disabled={!file || isUpdating}
-          onChange={handleIndexChange}
-        >
-          {INDEX_OPTIONS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="header__title-text">Портфель-трекер</span>
-      </h1>
-      <button
-        type="button"
-        className="header__menu-toggle"
-        aria-label="Меню"
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((prev) => !prev)}
-      >
-        ⋮
-      </button>
-      <div className={`header__actions${menuOpen ? " header__actions--open" : ""}`}>
+    <>
+      <header className="header">
+        <h1 className="header__title">
+          <select
+            className="header__brand"
+            value={selectedIndex}
+            disabled={!file || isUpdating}
+            onChange={handleIndexChange}
+          >
+            {INDEX_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="header__title-text">Портфель-трекер</span>
+        </h1>
         <button
           type="button"
-          onClick={() => {
-            setMenuOpen(false);
-            handleLoadClick();
-          }}
+          className="header__menu-toggle"
+          aria-label="Меню"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
         >
-          Загрузить файл
+          ⋮
         </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/json"
-          style={{ display: "none" }}
-          onChange={handleInputChange}
+        <div className={`header__actions${menuOpen ? " header__actions--open" : ""}`}>
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              handleLoadClick();
+            }}
+          >
+            Загрузить файл
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/json"
+            style={{ display: "none" }}
+            onChange={handleInputChange}
+          />
+          {!file && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                handleStartEmpty();
+              }}
+            >
+              Начать с пустого портфеля
+            </button>
+          )}
+          {file && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                handleSaveClick();
+              }}
+            >
+              Сохранить
+            </button>
+          )}
+          {file && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                setShowBrokerConnections(true);
+              }}
+            >
+              Брокеры
+            </button>
+          )}
+        </div>
+      </header>
+      {file && showBrokerConnections && (
+        <BrokerConnectionsModal
+          file={file}
+          onUpdateFile={setFile}
+          onClose={() => setShowBrokerConnections(false)}
         />
-        {!file && (
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              handleStartEmpty();
-            }}
-          >
-            Начать с пустого портфеля
-          </button>
-        )}
-        {file && (
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              handleSaveClick();
-            }}
-          >
-            Сохранить
-          </button>
-        )}
-      </div>
-    </header>
+      )}
+    </>
   );
 }

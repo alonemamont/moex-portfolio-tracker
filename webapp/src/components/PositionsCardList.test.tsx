@@ -7,6 +7,7 @@ function makePosition(overrides: Partial<CalculatedPosition> & { ticker: string 
   return {
     coefficient: 1,
     sharesOwned: 0,
+    manualSharesOwned: 0,
     shortName: overrides.ticker,
     indexWeight: 0,
     price: null,
@@ -30,7 +31,12 @@ describe("PositionsCardList", () => {
   it("renders one PositionCard per position", () => {
     const positions = [makePosition({ ticker: "GAZP" }), makePosition({ ticker: "SBER" })];
     render(
-      <PositionsCardList positions={positions} onChangeCoefficient={vi.fn()} onChangeSharesOwned={vi.fn()} />
+      <PositionsCardList
+        positions={positions}
+        brokerConnectionsById={new Map()}
+        onChangeCoefficient={vi.fn()}
+        onChangeSharesOwned={vi.fn()}
+      />
     );
 
     // Each fixture leaves shortName defaulted to the ticker, so PositionCard's

@@ -7,6 +7,7 @@ const position: CalculatedPosition = {
   ticker: "GAZP",
   coefficient: 1.5,
   sharesOwned: 10,
+  manualSharesOwned: 10,
   shortName: "Газпром",
   indexWeight: 12.3456,
   price: 150.5,
@@ -27,7 +28,12 @@ const position: CalculatedPosition = {
 describe("PositionCard", () => {
   it("shows ticker, short name, price and compliance while collapsed, and hides expanded fields", () => {
     render(
-      <PositionCard position={position} onChangeCoefficient={vi.fn()} onChangeSharesOwned={vi.fn()} />
+      <PositionCard
+        position={position}
+        brokerConnectionsById={new Map()}
+        onChangeCoefficient={vi.fn()}
+        onChangeSharesOwned={vi.fn()}
+      />
     );
 
     expect(screen.getByText("GAZP")).toBeInTheDocument();
@@ -39,7 +45,12 @@ describe("PositionCard", () => {
 
   it("reveals the expanded fields on tap, and hides them again on a second tap", () => {
     render(
-      <PositionCard position={position} onChangeCoefficient={vi.fn()} onChangeSharesOwned={vi.fn()} />
+      <PositionCard
+        position={position}
+        brokerConnectionsById={new Map()}
+        onChangeCoefficient={vi.fn()}
+        onChangeSharesOwned={vi.fn()}
+      />
     );
 
     const summary = screen.getByRole("button");
@@ -59,6 +70,7 @@ describe("PositionCard", () => {
     render(
       <PositionCard
         position={position}
+        brokerConnectionsById={new Map()}
         onChangeCoefficient={onChangeCoefficient}
         onChangeSharesOwned={onChangeSharesOwned}
       />

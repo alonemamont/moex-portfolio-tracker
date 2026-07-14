@@ -11,14 +11,24 @@ const baseFile: PortfolioFile = {
   sectors: {},
   history: [],
   pairs: [],
+  brokerConnections: [],
   brokerAccounts: [],
   transactions: [],
 };
 
 describe("mergeCompletedMarketUpdate", () => {
-  it("keeps concurrent broker accounts and transactions from the latest file", () => {
+  it("keeps concurrent broker connections, broker accounts, and transactions from the latest file", () => {
     const latest: PortfolioFile = {
       ...baseFile,
+      brokerConnections: [
+        {
+          id: "conn-1",
+          brokerId: "tbank",
+          accountId: "acc-1",
+          label: "Т-Банк",
+          encryptedToken: { ciphertext: "c", iv: "i", salt: "s" },
+        },
+      ],
       brokerAccounts: [{ id: "account-1", name: "Broker" }],
       transactions: [
         {
@@ -45,6 +55,7 @@ describe("mergeCompletedMarketUpdate", () => {
 
     const merged = mergeCompletedMarketUpdate(latest, completedMarketUpdate);
 
+    expect(merged.brokerConnections).toEqual(latest.brokerConnections);
     expect(merged.brokerAccounts).toEqual(latest.brokerAccounts);
     expect(merged.transactions).toEqual(latest.transactions);
     expect(merged.history).toEqual(completedMarketUpdate.history);

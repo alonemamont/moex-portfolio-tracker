@@ -15,6 +15,7 @@ function file(): PortfolioFile {
     sectors: {},
     history: [],
     pairs: [],
+    brokerConnections: [],
     brokerAccounts: [{ id: "account-1", name: "Основной" }],
     transactions: [{
       id: "transaction-1",

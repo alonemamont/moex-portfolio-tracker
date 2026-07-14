@@ -1,5 +1,6 @@
 import { CalculatedPosition, Pair } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
+import { buildSharesBreakdownTooltip } from "../domain/sharesBreakdown";
 import { formatNumber } from "./formatPosition";
 
 function formatMoney(value: number | null, digits = 2): string {
@@ -48,11 +49,13 @@ function pairRowClass(
 export function PositionsTable({
   positions,
   pairs,
+  brokerConnectionsById,
   onChangeCoefficient,
   onChangeSharesOwned,
 }: {
   positions: CalculatedPosition[];
   pairs: Pair[];
+  brokerConnectionsById: Map<string, string>;
   onChangeCoefficient: (ticker: string, value: number) => void;
   onChangeSharesOwned: (ticker: string, value: number) => void;
 }) {
@@ -126,9 +129,18 @@ export function PositionsTable({
                 <input
                   type="number"
                   step="1"
-                  value={p.sharesOwned}
+                  value={p.manualSharesOwned}
                   onChange={(e) => onChangeSharesOwned(p.ticker, Number(e.target.value))}
                 />
+                {p.brokerHoldings && p.brokerHoldings.length > 0 && (
+                  <span
+                    className="th-hint"
+                    data-tooltip={buildSharesBreakdownTooltip(p, brokerConnectionsById)}
+                    tabIndex={0}
+                  >
+                    Σ{p.sharesOwned}
+                  </span>
+                )}
               </td>
               <td className="num">{formatMoneyTruncated(p.positionValue)}</td>
               <td className="num">{formatNumber(p.sharesToBuy, 0)}</td>

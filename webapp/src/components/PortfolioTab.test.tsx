@@ -16,6 +16,7 @@ const sampleFile: PortfolioFile = {
   sectors: {},
   history: [],
   pairs: [],
+  brokerConnections: [],
   brokerAccounts: [],
   transactions: [],
 };

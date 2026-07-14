@@ -626,6 +626,36 @@ input[type="checkbox"] {
   line-height: 1.5;
 }
 
+/* Broker connections */
+
+.broker-connections__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.broker-connections__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.broker-connections__warning {
+  color: var(--warn);
+  font-size: 0.82rem;
+  margin: 0 0 10px;
+}
+
+.broker-connections__add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* Transactions */
 
 .transactions-tab { display: flex; flex-direction: column; gap: 14px; }

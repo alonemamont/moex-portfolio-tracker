@@ -21,6 +21,7 @@ function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
     sectors: {},
     history: [],
     pairs: [],
+    brokerConnections: [],
     brokerAccounts: [],
     transactions: [],
     ...overrides,

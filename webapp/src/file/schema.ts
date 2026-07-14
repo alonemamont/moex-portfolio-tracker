@@ -8,10 +8,17 @@ import {
 
 export class PortfolioFileValidationError extends Error {}
 
+const brokerHoldingSchema = z.object({
+  connectionId: z.string().min(1),
+  shares: z.number(),
+  syncedAt: z.string().min(1),
+});
+
 const positionSchema = z.object({
   ticker: z.string().min(1),
   coefficient: z.number(),
   sharesOwned: z.number(),
+  brokerHoldings: z.array(brokerHoldingSchema).default([]),
 });
 
 const historySnapshotRowSchema = z.object({
@@ -31,6 +38,20 @@ const historySnapshotSchema = z.object({
 const pairSchema = z.object({
   tickers: z.array(z.string()).min(2),
   coefficient: z.number(),
+});
+
+const encryptedTokenSchema = z.object({
+  ciphertext: z.string().min(1),
+  iv: z.string().min(1),
+  salt: z.string().min(1),
+});
+
+const brokerConnectionSchema = z.object({
+  id: z.string().min(1),
+  brokerId: z.string().min(1),
+  accountId: z.string().min(1),
+  label: z.string().min(1),
+  encryptedToken: encryptedTokenSchema,
 });
 
 const brokerAccountSchema = z.object({
@@ -54,6 +75,7 @@ const portfolioFileSchema = z.object({
   sectors: z.record(z.string()),
   history: z.array(historySnapshotSchema),
   pairs: z.array(pairSchema).default([]),
+  brokerConnections: z.array(brokerConnectionSchema).default([]),
   brokerAccounts: z.array(brokerAccountSchema).default([]),
   transactions: z.array(transactionSchema).default([]),
 }).superRefine((file, ctx) => {

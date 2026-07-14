@@ -2,13 +2,16 @@ import { useState } from "react";
 import { CalculatedPosition } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { buildExpandedFields, formatNumber } from "./formatPosition";
+import { buildSharesBreakdownTooltip } from "../domain/sharesBreakdown";
 
 export function PositionCard({
   position,
+  brokerConnectionsById,
   onChangeCoefficient,
   onChangeSharesOwned,
 }: {
   position: CalculatedPosition;
+  brokerConnectionsById: Map<string, string>;
   onChangeCoefficient: (ticker: string, value: number) => void;
   onChangeSharesOwned: (ticker: string, value: number) => void;
 }) {
@@ -52,9 +55,18 @@ export function PositionCard({
                   <input
                     type="number"
                     step="1"
-                    value={position.sharesOwned}
+                    value={position.manualSharesOwned}
                     onChange={(e) => onChangeSharesOwned(position.ticker, Number(e.target.value))}
                   />
+                  {position.brokerHoldings && position.brokerHoldings.length > 0 && (
+                    <span
+                      className="th-hint"
+                      data-tooltip={buildSharesBreakdownTooltip(position, brokerConnectionsById)}
+                      tabIndex={0}
+                    >
+                      Σ{position.sharesOwned}
+                    </span>
+                  )}
                 </div>
               );
             }

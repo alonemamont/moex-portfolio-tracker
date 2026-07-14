@@ -20,6 +20,7 @@ export function mergeCompletedMarketUpdate(
 ): PortfolioFile {
   return {
     ...completedMarketUpdate,
+    brokerConnections: latestFile.brokerConnections,
     brokerAccounts: latestFile.brokerAccounts,
     transactions: latestFile.transactions,
   };
