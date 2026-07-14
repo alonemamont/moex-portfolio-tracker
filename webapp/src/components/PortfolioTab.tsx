@@ -80,6 +80,11 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     [calculated, file, search, hideEmpty, onlyInIndex]
   );
 
+  const brokerConnectionsById = useMemo(
+    () => new Map((file?.brokerConnections ?? []).map((c) => [c.id, c.label])),
+    [file?.brokerConnections]
+  );
+
   if (!file) return null;
 
   function updateField(ticker: string, field: "coefficient" | "sharesOwned", value: number) {
@@ -153,6 +158,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       <PositionsTable
         positions={filteredPositions}
         pairs={file.pairs}
+        brokerConnectionsById={brokerConnectionsById}
         onChangeCoefficient={(ticker, value) => updateField(ticker, "coefficient", value)}
         onChangeSharesOwned={(ticker, value) => updateField(ticker, "sharesOwned", value)}
       />
