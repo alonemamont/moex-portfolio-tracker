@@ -13,6 +13,7 @@
     "test:mutation": "stryker run",
     "test:e2e": "playwright test",
     "test:contract": "vitest run src/brokers/finam/client.contract.test.ts src/brokers/tbank/client.contract.test.ts",
+    "test:bench": "vitest bench --run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "eslint ."
   },
