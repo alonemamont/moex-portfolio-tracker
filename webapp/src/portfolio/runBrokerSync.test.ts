@@ -21,7 +21,16 @@ const connection: BrokerConnection = {
 };
 
 function file(positions: PortfolioFile["positions"] = []): PortfolioFile {
-  return { version: 1, positions, sectors: {}, history: [], pairs: [], brokerConnections: [connection] };
+  return {
+    version: 1,
+    positions,
+    sectors: {},
+    history: [],
+    pairs: [],
+    brokerConnections: [connection],
+    brokerAccounts: [],
+    transactions: [],
+  };
 }
 
 describe("fetchBrokerSyncPreview", () => {

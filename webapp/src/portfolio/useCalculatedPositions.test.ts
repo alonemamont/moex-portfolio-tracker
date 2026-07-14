@@ -15,7 +15,17 @@ function live(overrides: Partial<LiveData> & { ticker: string }): LiveData {
 }
 
 function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
-  return { version: 1, positions: [], sectors: {}, history: [], pairs: [], brokerConnections: [], ...overrides };
+  return {
+    version: 1,
+    positions: [],
+    sectors: {},
+    history: [],
+    pairs: [],
+    brokerConnections: [],
+    brokerAccounts: [],
+    transactions: [],
+    ...overrides,
+  };
 }
 
 describe("computeCalculatedPositionsResult", () => {

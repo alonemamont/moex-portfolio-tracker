@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { usePortfolio } from "../portfolio/usePortfolio";
 import { useErrors } from "../errors/useErrors";
 import { createEmptyPortfolio } from "../file/createEmptyPortfolio";
-import { switchIndex } from "../portfolio/runMarketUpdate";
+import { mergeCompletedMarketUpdate, switchIndex } from "../portfolio/runMarketUpdate";
 import { INDEX_OPTIONS } from "../domain/indices";
 import {
   isFileSystemAccessSupported,
@@ -35,6 +35,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
   const { addError, clearBySource } = useErrors();
   const inputRef = useRef<HTMLInputElement>(null);
   const [showBrokerConnections, setShowBrokerConnections] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleLoadClick() {
     clearBySource(SOURCE);
@@ -107,7 +108,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
         liveByTicker,
         newIndexId
       );
-      setFile(updated);
+      setFile((current) => current ? mergeCompletedMarketUpdate(current, updated) : current);
       setLiveByTicker(newLiveByTicker);
       setSelectedIndex(newIndexId);
     } catch (error) {
@@ -133,10 +134,25 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
               </option>
             ))}
           </select>
-          Портфель-трекер
+          <span className="header__title-text">Портфель-трекер</span>
         </h1>
-        <div className="header__actions">
-          <button type="button" onClick={handleLoadClick}>
+        <button
+          type="button"
+          className="header__menu-toggle"
+          aria-label="Меню"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
+        >
+          ⋮
+        </button>
+        <div className={`header__actions${menuOpen ? " header__actions--open" : ""}`}>
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              handleLoadClick();
+            }}
+          >
             Загрузить файл
           </button>
           <input
@@ -147,17 +163,35 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
             onChange={handleInputChange}
           />
           {!file && (
-            <button type="button" onClick={handleStartEmpty}>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                handleStartEmpty();
+              }}
+            >
               Начать с пустого портфеля
             </button>
           )}
           {file && (
-            <button type="button" onClick={handleSaveClick}>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                handleSaveClick();
+              }}
+            >
               Сохранить
             </button>
           )}
           {file && (
-            <button type="button" onClick={() => setShowBrokerConnections(true)}>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                setShowBrokerConnections(true);
+              }}
+            >
               Брокеры
             </button>
           )}

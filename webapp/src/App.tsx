@@ -8,8 +8,9 @@ import { Dashboard } from "./components/Dashboard";
 import { PortfolioTab } from "./components/PortfolioTab";
 import { ChartsTab } from "./components/ChartsTab";
 import { SectorsTab } from "./components/SectorsTab";
+import { TransactionsTab } from "./components/TransactionsTab";
 
-type Tab = "portfolio" | "charts" | "sectors";
+type Tab = "portfolio" | "charts" | "sectors" | "transactions";
 
 function AppShell() {
   const [tab, setTab] = useState<Tab>("portfolio");
@@ -32,11 +33,15 @@ function AppShell() {
             <button type="button" onClick={() => setTab("sectors")} disabled={tab === "sectors"}>
               Сектора
             </button>
+            <button type="button" onClick={() => setTab("transactions")} disabled={tab === "transactions"}>
+              Транзакции
+            </button>
           </nav>
           <main className="tab-content">
             {tab === "portfolio" && <PortfolioTab autoUpdateSignal={updateSignal} />}
             {tab === "charts" && <ChartsTab />}
             {tab === "sectors" && <SectorsTab />}
+            {tab === "transactions" && <TransactionsTab />}
           </main>
         </>
       ) : (

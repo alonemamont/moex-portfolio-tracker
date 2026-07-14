@@ -21,6 +21,8 @@ describe("createEmptyPortfolio", () => {
     ]);
     expect(file.sectors).toEqual({});
     expect(file.history).toEqual([]);
+    expect(file.brokerAccounts).toEqual([]);
+    expect(file.transactions).toEqual([]);
   });
 
   it("calls fetchIndexComposition with DEFAULT_INDEX_ID", async () => {

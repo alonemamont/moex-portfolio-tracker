@@ -79,6 +79,24 @@ export interface BrokerConnection {
   encryptedToken: EncryptedToken;
 }
 
+export interface BrokerAccount {
+  id: string;
+  name: string;
+}
+
+export type TransactionType = "deposit" | "withdrawal";
+export type TransactionCurrency = "RUB" | "USD" | "CNY";
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  currency: TransactionCurrency;
+  date: string;
+  comment?: string;
+  accountId?: string;
+}
+
 export interface PortfolioFile {
   version: 1;
   positions: Position[];
@@ -86,4 +104,6 @@ export interface PortfolioFile {
   history: HistorySnapshot[];
   pairs: Pair[];
   brokerConnections: BrokerConnection[];
+  brokerAccounts: BrokerAccount[];
+  transactions: Transaction[];
 }

@@ -87,7 +87,16 @@ describe("buildSyncDiff", () => {
 
 describe("applySyncDiff", () => {
   function file(positions: Position[]): PortfolioFile {
-    return { version: 1, positions, sectors: {}, history: [], pairs: [], brokerConnections: [] };
+    return {
+      version: 1,
+      positions,
+      sectors: {},
+      history: [],
+      pairs: [],
+      brokerConnections: [],
+      brokerAccounts: [],
+      transactions: [],
+    };
   }
 
   it("upserts a brokerHoldings entry for an existing position", () => {
