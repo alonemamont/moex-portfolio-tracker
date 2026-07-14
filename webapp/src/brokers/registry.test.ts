@@ -7,6 +7,11 @@ describe("getBrokerAdapter", () => {
     expect(getBrokerAdapter("tbank")?.label).toBe("Т-Банк");
   });
 
+  it("returns the finam adapter for id 'finam'", () => {
+    expect(getBrokerAdapter("finam")).toBe(BROKER_REGISTRY[1]);
+    expect(getBrokerAdapter("finam")?.label).toBe("Финам");
+  });
+
   it("returns undefined for an unknown broker id", () => {
     expect(getBrokerAdapter("unknown")).toBeUndefined();
   });
