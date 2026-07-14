@@ -3,6 +3,7 @@ import { BrokerConnection, PortfolioFile } from "../types";
 import { useErrors } from "../errors/useErrors";
 import { getBrokerAdapter } from "../brokers/registry";
 import { decryptToken } from "../brokers/crypto";
+import { describeBrokerConnectionError } from "../brokers/connectionError";
 import { getSessionToken, setSessionToken, clearSessionToken } from "../brokers/tokenSession";
 import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
 import { applySyncDiff, SyncDiffRow } from "../brokers/syncDiff";
@@ -38,7 +39,7 @@ export function BrokerConnectionsModal({
       const rows = await fetchBrokerSyncPreview(file, connection, token);
       setPreviewState({ connection, rows });
     } catch (error) {
-      addError(SOURCE, `Не удалось подключиться, возможно ограничение брокера: ${(error as Error).message}`);
+      addError(SOURCE, describeBrokerConnectionError(getBrokerAdapter(connection.brokerId), error));
     } finally {
       setSyncingId(null);
     }

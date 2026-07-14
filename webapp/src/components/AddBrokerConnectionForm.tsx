@@ -3,6 +3,7 @@ import { BrokerConnection } from "../types";
 import { BrokerAccount } from "../brokers/types";
 import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
 import { encryptToken } from "../brokers/crypto";
+import { describeBrokerConnectionError } from "../brokers/connectionError";
 
 export function AddBrokerConnectionForm({
   isFirstConnection,
@@ -35,7 +36,7 @@ export function AddBrokerConnectionForm({
         setLabelInput(`${adapter.label} — ${fetched[0].name}`);
       }
     } catch (err) {
-      setError(`Не удалось подключиться, возможно ограничение брокера: ${(err as Error).message}`);
+      setError(describeBrokerConnectionError(adapter, err));
       setAccounts(null);
     } finally {
       setLoadingAccounts(false);
