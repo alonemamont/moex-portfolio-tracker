@@ -5,6 +5,7 @@ import { ErrorProvider } from "../errors/ErrorContext";
 import { ErrorPanel } from "../errors/ErrorPanel";
 import { BrokerConnectionsModal } from "./BrokerConnectionsModal";
 import { encryptToken } from "../brokers/crypto";
+import { getSessionToken, setSessionToken } from "../brokers/tokenSession";
 import { PortfolioFile, BrokerConnection } from "../types";
 import { SyncDiffRow } from "../brokers/syncDiff";
 
@@ -134,6 +135,19 @@ describe("BrokerConnectionsModal", () => {
     fireEvent.click(screen.getByText("Удалить"));
 
     expect(onUpdateFile).toHaveBeenCalledWith({ ...file, brokerConnections: [] });
+  });
+
+  it("clears the cached session token when a connection is removed", async () => {
+    const connection = await makeConnection();
+    setSessionToken(connection.id, TOKEN);
+    const file = makeFile([connection]);
+    renderModal(file, vi.fn());
+
+    expect(getSessionToken(connection.id)).toBe(TOKEN);
+
+    fireEvent.click(screen.getByText("Удалить"));
+
+    expect(getSessionToken(connection.id)).toBeNull();
   });
 
   it("applies the diff and closes the preview when the sync is confirmed", async () => {
