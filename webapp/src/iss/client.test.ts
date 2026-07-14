@@ -88,7 +88,9 @@ const dividendsXml = (rows: string) => `<?xml version="1.0" encoding="UTF-8"?>
 <document><data id="dividends"><rows>${rows}</rows></data></document>`;
 
 describe("fetchLatestDividend", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("returns the value of the row with the latest registryclosedate", async () => {
     mockFetchByUrl([
@@ -115,7 +117,9 @@ describe("fetchLatestDividend", () => {
 });
 
 describe("fetchDividendsForTickers", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("resolves 0 for a ticker whose request fails, without failing the whole batch", async () => {
     mockFetchByUrl([

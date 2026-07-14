@@ -75,6 +75,7 @@ describe("BrokerSyncPreviewModal", () => {
     const { container } = render(
       <BrokerSyncPreviewModal connectionLabel="Т-Банк" rows={rows} onConfirm={vi.fn()} onClose={vi.fn()} />
     );
-    expect(await axe(container)).toHaveNoViolations();
+    const results = await axe(container);
+    expect(results.violations).toEqual([]);
   });
 });

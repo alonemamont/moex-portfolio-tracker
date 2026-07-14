@@ -113,6 +113,7 @@ describe("AddBrokerConnectionForm", () => {
     const { container } = render(
       <AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />
     );
-    expect(await axe(container)).toHaveNoViolations();
+    const results = await axe(container);
+    expect(results.violations).toEqual([]);
   });
 });

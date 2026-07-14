@@ -3,7 +3,9 @@ import { mergeCompletedMarketUpdate, runMarketUpdate } from "./runMarketUpdate";
 import * as marketDataModule from "../iss/marketData";
 import { PortfolioFile, LiveData } from "../types";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const baseFile: PortfolioFile = {
   version: 1,

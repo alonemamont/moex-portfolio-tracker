@@ -194,6 +194,7 @@ describe("BrokerConnectionsModal", () => {
   it("has no detectable a11y violations when a connection is locked", async () => {
     const connection = await makeConnection();
     const { container } = renderModal(makeFile([connection]));
-    expect(await axe(container)).toHaveNoViolations();
+    const results = await axe(container);
+    expect(results.violations).toEqual([]);
   });
 });
