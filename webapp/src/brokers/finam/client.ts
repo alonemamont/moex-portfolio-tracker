@@ -60,7 +60,7 @@ export async function fetchFinamAccountDetails(jwt: string, accountId: string): 
 export async function resolveFinamAsset(jwt: string, symbol: string, accountId: string): Promise<FinamAssetInfo | null> {
   try {
     return await finamRequest<FinamAssetInfo>(
-      `/v1/assets/${encodeURIComponent(symbol)}?account_id=${accountId}`,
+      `/v1/assets/${encodeURIComponent(symbol)}?account_id=${encodeURIComponent(accountId)}`,
       { jwt }
     );
   } catch {
