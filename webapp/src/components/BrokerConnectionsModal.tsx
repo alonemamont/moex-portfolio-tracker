@@ -6,11 +6,8 @@ import { applySyncDiff, SyncDiffRow } from "../brokers/syncDiff";
 import { useErrors } from "../errors/useErrors";
 import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
 import { BrokerConnection, PortfolioFile } from "../types";
-import {
-  AddBrokerConnectionForm,
-  isBrokerSyncAvailable,
-  WINDOWS_RELEASE_URL,
-} from "./AddBrokerConnectionForm";
+import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
+import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
 import { BrokerSyncPreviewModal } from "./BrokerSyncPreviewModal";
 
 const SOURCE = "broker-sync";

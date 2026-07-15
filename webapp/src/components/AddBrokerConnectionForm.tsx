@@ -2,14 +2,8 @@ import { useState } from "react";
 import { encryptToken } from "../brokers/crypto";
 import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
 import { BrokerAccount } from "../brokers/types";
-import { isTauriRuntime } from "../runtime/isTauriRuntime";
 import { BrokerConnection } from "../types";
-
-export const WINDOWS_RELEASE_URL = "https://github.com/alonemamont/moex-portfolio-tracker/releases/latest";
-
-export function isBrokerSyncAvailable(brokerId: string): boolean {
-  return brokerId !== "tbank" || isTauriRuntime();
-}
+import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
 
 export function AddBrokerConnectionForm({
   isFirstConnection,
