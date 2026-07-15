@@ -95,7 +95,7 @@ describe("AddBrokerConnectionForm", () => {
     expect(screen.getByText("ИИС")).toBeInTheDocument();
   });
 
-  it("shows the raw adapter error and no account picker when the fetch fails", async () => {
+  it("shows the wrapped adapter error and no account picker when the fetch fails", async () => {
     tauriRuntime = true;
     listAccounts.mockRejectedValueOnce(new Error("API Т-Банка временно недоступен"));
     render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />);
@@ -103,7 +103,9 @@ describe("AddBrokerConnectionForm", () => {
     fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "tok123" } });
     fireEvent.click(screen.getByRole("button", { name: "Проверить и продолжить" }));
 
-    expect(await screen.findByText("API Т-Банка временно недоступен")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Не удалось подключиться, возможно ограничение брокера: API Т-Банка временно недоступен")
+    ).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Название подключения")).not.toBeInTheDocument();
   });
 

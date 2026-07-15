@@ -3,6 +3,7 @@ import { BrokerConnection } from "../types";
 import { BrokerAccount } from "../brokers/types";
 import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
 import { encryptToken } from "../brokers/crypto";
+import { describeBrokerConnectionError } from "../brokers/connectionError";
 import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
 
 export function AddBrokerConnectionForm({
@@ -39,7 +40,7 @@ export function AddBrokerConnectionForm({
         setLabelInput(`${adapter.label} — ${fetched[0].name}`);
       }
     } catch (err) {
-      setError((err as Error).message);
+      setError(describeBrokerConnectionError(adapter, err));
       setAccounts(null);
     } finally {
       setLoadingAccounts(false);

@@ -3,6 +3,7 @@ import { BrokerConnection, PortfolioFile } from "../types";
 import { useErrors } from "../errors/useErrors";
 import { getBrokerAdapter } from "../brokers/registry";
 import { decryptToken } from "../brokers/crypto";
+import { describeBrokerConnectionError } from "../brokers/connectionError";
 import { getSessionToken, setSessionToken, clearSessionToken } from "../brokers/tokenSession";
 import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
 import { applySyncDiff, SyncDiffRow } from "../brokers/syncDiff";
@@ -55,7 +56,12 @@ export function BrokerConnectionsModal({
         brokerId: connection.brokerId,
         accountId: connection.accountId,
       });
-      addError(SOURCE, (error as Error).message);
+      const message = (error as Error).message;
+      if (message.startsWith("Не удалось проверить тикеры через MOEX ISS:")) {
+        addError(SOURCE, message);
+      } else {
+        addError(SOURCE, describeBrokerConnectionError(getBrokerAdapter(connection.brokerId), error));
+      }
     } finally {
       setSyncingId(null);
     }

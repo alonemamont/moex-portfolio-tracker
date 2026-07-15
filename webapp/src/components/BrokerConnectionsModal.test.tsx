@@ -173,7 +173,9 @@ describe("BrokerConnectionsModal", () => {
     fireEvent.change(screen.getByPlaceholderText("Пароль-фраза"), { target: { value: PASSPHRASE } });
     fireEvent.click(screen.getByRole("button", { name: "Ок" }));
 
-    expect(await screen.findByText("API Т-Банка временно недоступен")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Не удалось подключиться, возможно ограничение брокера: API Т-Банка временно недоступен")
+    ).toBeInTheDocument();
     expect(screen.queryByText("Синхронизация: Мой Т-Банк")).not.toBeInTheDocument();
   });
 
