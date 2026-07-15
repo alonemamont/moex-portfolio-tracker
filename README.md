@@ -73,3 +73,9 @@ GitHub Pages, путь `/moex-portfolio-tracker/` (см. `base` в
 `vite.config.ts`). Workflow `.github/workflows/deploy.yml` триггерится на
 push в `main`, но дефолтная ветка репозитория — `master` (автодеплой при
 обычных push пока не срабатывает — известная проблема, будет исправлена).
+
+## Windows portable build
+
+Latest release: https://github.com/alonemamont/moex-portfolio-tracker/releases/latest
+
+T-Bank synchronization requires the Windows portable application. Finam synchronization remains available in the browser build on GitHub Pages.
