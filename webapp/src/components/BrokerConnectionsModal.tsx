@@ -152,7 +152,7 @@ export function BrokerConnectionsModal({
                     Удалить
                   </button>
                 </div>
-                {!syncAvailable && (
+                {connection.brokerId === "tbank" && !syncAvailable && (
                   <p className="broker-connections__desktop-notice">
                     Синхронизация с Т-Банком доступна в приложении для Windows.{" "}
                     <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">

@@ -27,6 +27,8 @@ export function AddBrokerConnectionForm({
   const syncAvailable = isBrokerSyncAvailable(brokerId);
 
   async function handleFetchAccounts() {
+    if (!syncAvailable) return;
+
     setError(null);
     setLoadingAccounts(true);
     try {
@@ -71,7 +73,7 @@ export function AddBrokerConnectionForm({
           дальше, вы передаёте и зашифрованные токены; безопасность зависит от стойкости пароль-фразы.
         </p>
       )}
-      {!syncAvailable && (
+      {brokerId === "tbank" && !syncAvailable && (
         <p className="broker-connections__desktop-notice">
           Синхронизация с Т-Банком доступна в приложении для Windows.{" "}
           <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">

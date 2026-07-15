@@ -173,3 +173,9 @@ docs/superpowers/  дизайн-спеки и планы по развитию
 ## Публикация
 
 Веб-версия собирается с base path `/moex-portfolio-tracker/`, что подходит для публикации на GitHub Pages. Workflow-файлы CI и деплоя лежат в `.github/workflows/`.
+
+## Windows Portable Build
+
+Latest release: https://github.com/alonemamont/moex-portfolio-tracker/releases/latest
+
+T-Bank synchronization requires the Windows portable application. Finam synchronization remains available in the browser build on GitHub Pages.
