@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { BrokerConnection } from "../types";
-import { BrokerAccount } from "../brokers/types";
-import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
 import { encryptToken } from "../brokers/crypto";
+import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
+import { BrokerAccount } from "../brokers/types";
+import { isTauriRuntime } from "../runtime/isTauriRuntime";
+import { BrokerConnection } from "../types";
+
+export const WINDOWS_RELEASE_URL = "https://github.com/alonemamont/moex-portfolio-tracker/releases/latest";
+
+export function isBrokerSyncAvailable(brokerId: string): boolean {
+  return brokerId !== "tbank" || isTauriRuntime();
+}
 
 export function AddBrokerConnectionForm({
   isFirstConnection,
@@ -23,8 +30,11 @@ export function AddBrokerConnectionForm({
   const [error, setError] = useState<string | null>(null);
 
   const adapter = getBrokerAdapter(brokerId)!;
+  const syncAvailable = isBrokerSyncAvailable(brokerId);
 
   async function handleFetchAccounts() {
+    if (!syncAvailable) return;
+
     setError(null);
     setLoadingAccounts(true);
     try {
@@ -44,6 +54,7 @@ export function AddBrokerConnectionForm({
 
   async function handleAdd() {
     if (!selectedAccountId || !labelInput.trim() || !passphraseInput) return;
+
     setError(null);
     try {
       const encryptedToken = await encryptToken(tokenInput, passphraseInput);
@@ -65,7 +76,7 @@ export function AddBrokerConnectionForm({
     <div className="broker-connections__add-form">
       {isFirstConnection && (
         <p className="broker-connections__warning">
-          Токен брокера сохраняется в файле портфеля в зашифрованном виде. Передавая portfolio.json
+          Токен брокера сохраняется в файле портфеля в зашифрованном виде. Передавая `portfolio.json`
           дальше, вы передаёте и зашифрованные токены — безопасность зависит от стойкости пароль-фразы.
         </p>
       )}
@@ -78,9 +89,9 @@ export function AddBrokerConnectionForm({
             setAccounts(null);
           }}
         >
-          {BROKER_REGISTRY.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.label}
+          {BROKER_REGISTRY.map((broker) => (
+            <option key={broker.id} value={broker.id}>
+              {broker.label}
             </option>
           ))}
         </select>
@@ -93,10 +104,18 @@ export function AddBrokerConnectionForm({
             setAccounts(null);
           }}
         />
-        <button type="button" onClick={handleFetchAccounts} disabled={!tokenInput || loadingAccounts}>
+        <button type="button" onClick={handleFetchAccounts} disabled={!tokenInput || loadingAccounts || !syncAvailable}>
           {loadingAccounts ? "Проверка…" : "Проверить и продолжить"}
         </button>
       </div>
+      {brokerId === "tbank" && !syncAvailable && (
+        <p className="broker-connections__desktop-notice">
+          <span>Синхронизация с Т-Банком доступна в приложении для Windows.</span>{" "}
+          <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">
+            Скачать portable-версию
+          </a>
+        </p>
+      )}
       {error && <span className="add-ticker__status">{error}</span>}
       {accounts && (
         <div className="add-ticker__field">
@@ -105,9 +124,9 @@ export function AddBrokerConnectionForm({
             value={selectedAccountId}
             onChange={(e) => setSelectedAccountId(e.target.value)}
           >
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
               </option>
             ))}
           </select>

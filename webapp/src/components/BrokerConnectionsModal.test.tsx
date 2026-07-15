@@ -1,18 +1,31 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { ErrorProvider } from "../errors/ErrorContext";
 import { ErrorPanel } from "../errors/ErrorPanel";
 import { BrokerConnectionsModal } from "./BrokerConnectionsModal";
 import { encryptToken } from "../brokers/crypto";
 import { getSessionToken, setSessionToken } from "../brokers/tokenSession";
-import { PortfolioFile, BrokerConnection } from "../types";
+import { BrokerConnection, PortfolioFile } from "../types";
 import { SyncDiffRow } from "../brokers/syncDiff";
 
-vi.mock("../brokers/registry", () => ({
-  BROKER_REGISTRY: [{ id: "tbank", label: "Т-Банк", listAccounts: vi.fn(), fetchHoldings: vi.fn() }],
-  getBrokerAdapter: (id: string) => (id === "tbank" ? { id: "tbank", label: "Т-Банк" } : undefined),
+let tauriRuntime = true;
+
+vi.mock("../runtime/isTauriRuntime", () => ({
+  isTauriRuntime: () => tauriRuntime,
 }));
+
+vi.mock("../brokers/registry", () => {
+  const registry = [
+    { id: "tbank", label: "Т-Банк", listAccounts: vi.fn(), fetchHoldings: vi.fn() },
+    { id: "finam", label: "Финам", listAccounts: vi.fn(), fetchHoldings: vi.fn() },
+  ];
+
+  return {
+    BROKER_REGISTRY: registry,
+    getBrokerAdapter: (id: string) => registry.find((adapter) => adapter.id === id),
+  };
+});
 
 vi.mock("../portfolio/runBrokerSync", () => ({
   fetchBrokerSyncPreview: vi.fn(),
@@ -23,13 +36,13 @@ import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
 const PASSPHRASE = "hunter2";
 const TOKEN = "real-broker-token";
 
-async function makeConnection(): Promise<BrokerConnection> {
+async function makeConnection(overrides: Partial<BrokerConnection> = {}): Promise<BrokerConnection> {
   return {
-    id: "conn-1",
-    brokerId: "tbank",
-    accountId: "acc-1",
-    label: "Мой Т-Банк",
-    encryptedToken: await encryptToken(TOKEN, PASSPHRASE),
+    id: overrides.id ?? "conn-1",
+    brokerId: overrides.brokerId ?? "tbank",
+    accountId: overrides.accountId ?? "acc-1",
+    label: overrides.label ?? "Мой Т-Банк",
+    encryptedToken: overrides.encryptedToken ?? (await encryptToken(TOKEN, PASSPHRASE)),
   };
 }
 
@@ -56,6 +69,7 @@ function renderModal(file: PortfolioFile, onUpdateFile = vi.fn(), onClose = vi.f
 }
 
 beforeEach(() => {
+  tauriRuntime = true;
   vi.mocked(fetchBrokerSyncPreview).mockReset();
 });
 
@@ -64,6 +78,25 @@ afterEach(() => {
 });
 
 describe("BrokerConnectionsModal", () => {
+  it("disables only T-Bank sync in the browser and shows the Windows notice beside that connection", async () => {
+    tauriRuntime = false;
+    const tbankConnection = await makeConnection({ id: "tbank-1", brokerId: "tbank", label: "Мой Т-Банк" });
+    const finamConnection = await makeConnection({ id: "finam-1", brokerId: "finam", label: "Мой Финам" });
+
+    renderModal(makeFile([tbankConnection, finamConnection]));
+
+    const tbankRow = screen.getByText("🔒 Мой Т-Банк (Т-Банк)").closest(".broker-connections__row");
+    const finamRow = screen.getByText("🔒 Мой Финам (Финам)").closest(".broker-connections__row");
+
+    expect(tbankRow).not.toBeNull();
+    expect(finamRow).not.toBeNull();
+    expect(within(tbankRow as HTMLElement).getByRole("button", { name: "Синхронизировать" })).toBeDisabled();
+    expect(
+      within(tbankRow as HTMLElement).getByText("Синхронизация с Т-Банком доступна в приложении для Windows.")
+    ).toBeInTheDocument();
+    expect(within(finamRow as HTMLElement).getByRole("button", { name: "Синхронизировать" })).not.toBeDisabled();
+  });
+
   it("shows a locked connection with its adapter label", async () => {
     const connection = await makeConnection();
     renderModal(makeFile([connection]));

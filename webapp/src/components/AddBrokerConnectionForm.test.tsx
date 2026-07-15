@@ -1,29 +1,77 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
 
-const listAccounts = vi.fn();
+const listAccounts = {
+  tbank: vi.fn(),
+  finam: vi.fn(),
+};
+
+let tauriRuntime = true;
+
+vi.mock("../runtime/isTauriRuntime", () => ({
+  isTauriRuntime: () => tauriRuntime,
+}));
 
 vi.mock("../brokers/registry", () => {
-  const adapter = {
-    id: "mock-broker",
-    label: "MockBroker",
-    listAccounts: (...args: unknown[]) => listAccounts(...args),
-    fetchHoldings: vi.fn(),
-  };
+  const registry = [
+    {
+      id: "tbank",
+      label: "Т-Банк",
+      listAccounts: (...args: unknown[]) => listAccounts.tbank(...args),
+      fetchHoldings: vi.fn(),
+    },
+    {
+      id: "finam",
+      label: "Финам",
+      listAccounts: (...args: unknown[]) => listAccounts.finam(...args),
+      fetchHoldings: vi.fn(),
+    },
+  ];
+
   return {
-    BROKER_REGISTRY: [adapter],
-    getBrokerAdapter: (id: string) => (id === adapter.id ? adapter : undefined),
+    BROKER_REGISTRY: registry,
+    getBrokerAdapter: (id: string) => registry.find((adapter) => adapter.id === id),
   };
 });
 
-describe("AddBrokerConnectionForm", () => {
-  it("disables the fetch-accounts button until a token is entered", () => {
-    render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByText("Проверить и продолжить")).toBeDisabled();
+beforeEach(() => {
+  tauriRuntime = true;
+  listAccounts.tbank.mockReset();
+  listAccounts.finam.mockReset();
+});
 
-    fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "tok123" } });
+describe("AddBrokerConnectionForm", () => {
+  it("disables T-Bank account lookup in the browser and points users at the Windows release", () => {
+    tauriRuntime = false;
+
+    render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText("Т-Банк")).toBeInTheDocument();
+    expect(screen.getByText(/Синхронизация с Т-Банком доступна в приложении для Windows/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Скачать portable-версию" })).toHaveAttribute(
+      "href",
+      "https://github.com/alonemamont/moex-portfolio-tracker/releases/latest"
+    );
+    expect(screen.getByText("Проверить и продолжить")).toBeDisabled();
+  });
+
+  it("keeps Finam available in the browser and T-Bank available inside Tauri", () => {
+    tauriRuntime = false;
+
+    const { rerender } = render(
+      <AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />
+    );
+
+    fireEvent.change(screen.getByLabelText("Брокер"), { target: { value: "finam" } });
+    fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "finam-token" } });
+    expect(screen.getByText("Проверить и продолжить")).not.toBeDisabled();
+
+    tauriRuntime = true;
+    rerender(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Брокер"), { target: { value: "tbank" } });
+    fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "tbank-token" } });
     expect(screen.getByText("Проверить и продолжить")).not.toBeDisabled();
   });
 
@@ -38,7 +86,7 @@ describe("AddBrokerConnectionForm", () => {
   });
 
   it("populates the account picker and default label after a successful fetch", async () => {
-    listAccounts.mockResolvedValueOnce([
+    listAccounts.tbank.mockResolvedValueOnce([
       { id: "acc-1", name: "Брокерский счёт" },
       { id: "acc-2", name: "ИИС" },
     ]);
@@ -47,14 +95,14 @@ describe("AddBrokerConnectionForm", () => {
     fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "tok123" } });
     fireEvent.click(screen.getByText("Проверить и продолжить"));
 
-    await waitFor(() => expect(listAccounts).toHaveBeenCalledWith("tok123"));
-    expect(await screen.findByDisplayValue("MockBroker — Брокерский счёт")).toBeInTheDocument();
+    await waitFor(() => expect(listAccounts.tbank).toHaveBeenCalledWith("tok123"));
+    expect(await screen.findByDisplayValue("Т-Банк — Брокерский счёт")).toBeInTheDocument();
     expect(screen.getByText("Брокерский счёт")).toBeInTheDocument();
     expect(screen.getByText("ИИС")).toBeInTheDocument();
   });
 
   it("shows an error and no account picker when the fetch fails", async () => {
-    listAccounts.mockRejectedValueOnce(new Error("rate limited"));
+    listAccounts.tbank.mockRejectedValueOnce(new Error("rate limited"));
     render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "tok123" } });
@@ -65,7 +113,7 @@ describe("AddBrokerConnectionForm", () => {
   });
 
   it("clears fetched accounts when the token is edited again", async () => {
-    listAccounts.mockResolvedValueOnce([{ id: "acc-1", name: "Брокерский счёт" }]);
+    listAccounts.tbank.mockResolvedValueOnce([{ id: "acc-1", name: "Брокерский счёт" }]);
     render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={vi.fn()} onCancel={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText("Токен"), { target: { value: "tok123" } });
@@ -77,7 +125,7 @@ describe("AddBrokerConnectionForm", () => {
   });
 
   it("keeps Add disabled until account, label and passphrase are all filled, then calls onAdd with an encrypted token", async () => {
-    listAccounts.mockResolvedValueOnce([{ id: "acc-1", name: "Брокерский счёт" }]);
+    listAccounts.tbank.mockResolvedValueOnce([{ id: "acc-1", name: "Брокерский счёт" }]);
     const onAdd = vi.fn();
     render(<AddBrokerConnectionForm isFirstConnection={false} onAdd={onAdd} onCancel={vi.fn()} />);
 
@@ -95,9 +143,9 @@ describe("AddBrokerConnectionForm", () => {
 
     await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1));
     const connection = onAdd.mock.calls[0][0];
-    expect(connection.brokerId).toBe("mock-broker");
+    expect(connection.brokerId).toBe("tbank");
     expect(connection.accountId).toBe("acc-1");
-    expect(connection.label).toBe("MockBroker — Брокерский счёт");
+    expect(connection.label).toBe("Т-Банк — Брокерский счёт");
     expect(connection.encryptedToken.ciphertext).toEqual(expect.any(String));
     expect(connection.id).toEqual(expect.any(String));
   });

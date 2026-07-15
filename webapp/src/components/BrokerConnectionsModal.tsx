@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { BrokerConnection, PortfolioFile } from "../types";
-import { useErrors } from "../errors/useErrors";
-import { getBrokerAdapter } from "../brokers/registry";
+import { clearSessionToken, getSessionToken, setSessionToken } from "../brokers/tokenSession";
 import { decryptToken } from "../brokers/crypto";
-import { getSessionToken, setSessionToken, clearSessionToken } from "../brokers/tokenSession";
-import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
+import { getBrokerAdapter } from "../brokers/registry";
 import { applySyncDiff, SyncDiffRow } from "../brokers/syncDiff";
-import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
+import { useErrors } from "../errors/useErrors";
+import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
+import { BrokerConnection, PortfolioFile } from "../types";
+import {
+  AddBrokerConnectionForm,
+  isBrokerSyncAvailable,
+  WINDOWS_RELEASE_URL,
+} from "./AddBrokerConnectionForm";
 import { BrokerSyncPreviewModal } from "./BrokerSyncPreviewModal";
 
 const SOURCE = "broker-sync";
@@ -50,6 +54,7 @@ export function BrokerConnectionsModal({
       void runSync(connection, cached);
       return;
     }
+
     setUnlockingId(connection.id);
     setPendingSyncAfterUnlock(true);
     setPassphraseInput("");
@@ -82,7 +87,7 @@ export function BrokerConnectionsModal({
     clearSessionToken(connectionId);
     onUpdateFile({
       ...file,
-      brokerConnections: file.brokerConnections.filter((c) => c.id !== connectionId),
+      brokerConnections: file.brokerConnections.filter((connection) => connection.id !== connectionId),
     });
   }
 
@@ -93,12 +98,8 @@ export function BrokerConnectionsModal({
 
   function handleConfirmSync() {
     if (!previewState) return;
-    const updated = applySyncDiff(
-      file,
-      previewState.connection.id,
-      previewState.rows,
-      new Date().toISOString()
-    );
+
+    const updated = applySyncDiff(file, previewState.connection.id, previewState.rows, new Date().toISOString());
     onUpdateFile(updated);
     setPreviewState(null);
   }
@@ -111,6 +112,8 @@ export function BrokerConnectionsModal({
           {file.brokerConnections.map((connection) => {
             const adapter = getBrokerAdapter(connection.brokerId);
             const isLocked = getSessionToken(connection.id) === null;
+            const syncAvailable = isBrokerSyncAvailable(connection.brokerId);
+
             return (
               <div className="broker-connections__row" key={connection.id}>
                 <span>
@@ -126,7 +129,7 @@ export function BrokerConnectionsModal({
                   <button
                     type="button"
                     onClick={() => handleSyncClick(connection)}
-                    disabled={syncingId === connection.id}
+                    disabled={syncingId === connection.id || !syncAvailable}
                   >
                     {syncingId === connection.id ? "Синхронизация…" : "Синхронизировать"}
                   </button>
@@ -148,6 +151,14 @@ export function BrokerConnectionsModal({
                     </button>
                     {unlockError && <span className="add-ticker__status">{unlockError}</span>}
                   </div>
+                )}
+                {connection.brokerId === "tbank" && !syncAvailable && (
+                  <p className="broker-connections__desktop-notice">
+                    <span>Синхронизация с Т-Банком доступна в приложении для Windows.</span>{" "}
+                    <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">
+                      Скачать portable-версию
+                    </a>
+                  </p>
                 )}
               </div>
             );
