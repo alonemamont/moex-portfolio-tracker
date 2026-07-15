@@ -15,9 +15,13 @@
     "test:contract": "vitest run src/brokers/finam/client.contract.test.ts src/brokers/tbank/client.contract.test.ts",
     "test:bench": "vitest bench --run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --no-bundle"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-http": "^2.5.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7",
@@ -28,6 +32,7 @@
     "@playwright/test": "^1.61.1",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@tauri-apps/cli": "^2.8.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.1",

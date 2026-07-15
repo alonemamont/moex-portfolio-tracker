@@ -36,6 +36,20 @@
 
 Тулчейн приложения находится в каталоге `webapp/`.
 
+### Зависимости для запуска
+
+- `Node.js 20+`
+- `Rust` с target `x86_64-pc-windows-msvc`
+- Для desktop-режима на Windows: `Visual Studio 2022 Build Tools` или `Visual Studio 2022` с workload `Desktop development with C++`
+
+Для проверки Rust toolchain:
+
+```bash
+rustup show
+```
+
+Для desktop-режима `Tauri` нужен системный линкер `link.exe` из MSVC. Если `npm run tauri:dev` падает с ошибкой `linker 'link.exe' not found`, значит не установлен Visual C++ toolchain или сборка запущена вне Developer PowerShell / без корректно настроенного `PATH`.
+
 ```bash
 cd webapp
 npm install
@@ -71,6 +85,46 @@ npm run test:mutation
 ```bash
 npm run tauri:dev
 npm run tauri:build
+```
+
+На Windows для `Tauri` обычно нужно:
+
+```bash
+rustup default stable-x86_64-pc-windows-msvc
+```
+
+А затем запускать сборку после установки Visual C++ Build Tools.
+
+Если Build Tools установлены в `E:\work\tools\VS2022BuildTools`, можно запускать desktop-режим через готовые скрипты:
+
+```bash
+cd webapp
+tauri-dev.cmd
+```
+
+Скрипт сам поднимает `VsDevCmd.bat` и затем вызывает `npm run tauri:dev`.
+
+Для запуска из PowerShell можно использовать wrapper:
+
+```powershell
+cd webapp
+.\tauri-dev.ps1
+```
+
+Для desktop-сборки:
+
+```bash
+cd webapp
+tauri-build.cmd
+```
+
+Скрипт так же поднимает `VsDevCmd.bat` и затем вызывает `npm run tauri:build`.
+
+PowerShell-вариант:
+
+```powershell
+cd webapp
+.\tauri-build.ps1
 ```
 
 > [!NOTE]

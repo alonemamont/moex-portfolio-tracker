@@ -64,4 +64,18 @@ describe("fetchBrokerSyncPreview", () => {
       ])
     );
   });
+
+  it("wraps ISS failures with a concrete sync-stage error", async () => {
+    vi.mocked(getBrokerAdapter).mockReturnValue({
+      id: "tbank",
+      label: "Рў-Р‘Р°РЅРє",
+      listAccounts: vi.fn(),
+      fetchHoldings: vi.fn().mockResolvedValue([{ ticker: "NEWTICK", shares: 3 }]),
+    });
+    vi.mocked(fetchSecurities).mockRejectedValue(new Error("Failed to fetch"));
+
+    await expect(fetchBrokerSyncPreview(file(), connection, "token")).rejects.toThrow(
+      "Не удалось проверить тикеры через MOEX ISS: Failed to fetch"
+    );
+  });
 });
