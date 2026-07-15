@@ -14,3 +14,6 @@ positions.csv
 
 # Local isolated development worktrees
 .worktrees/
+
+# Local toolchains and build outputs for desktop packaging
+.tools/
