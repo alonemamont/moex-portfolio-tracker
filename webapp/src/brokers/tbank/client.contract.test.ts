@@ -1,8 +1,8 @@
-// Live contract test — only runs when TBANK_CONTRACT_TEST_TOKEN is set.
+// Live contract test - only runs when TBANK_CONTRACT_TEST_TOKEN is set.
 // Run locally: TBANK_CONTRACT_TEST_TOKEN=<real-token> npm run test:contract
-import { describe, it, expect } from "vitest";
-import { fetchTbankAccounts } from "./client";
+import { describe, expect, it } from "vitest";
 import { browserTransport } from "../../http/transport";
+import { fetchTbankAccounts } from "./client";
 
 const TOKEN = process.env.TBANK_CONTRACT_TEST_TOKEN;
 

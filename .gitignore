@@ -15,3 +15,6 @@ positions.csv
 # Local isolated development worktrees
 .worktrees/
 /webapp/src-tauri/target
+
+# Local toolchains and build outputs for desktop packaging
+.tools/
