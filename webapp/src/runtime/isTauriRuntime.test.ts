@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { isTauriRuntime } from "./isTauriRuntime";
 
-afterEach(() => Reflect.deleteProperty(window, "__TAURI_INTERNALS__"));
+afterEach(() => {
+  Reflect.deleteProperty(window, "__TAURI_INTERNALS__");
+});
 
 describe("isTauriRuntime", () => {
   it("is false in an ordinary browser", () => {
