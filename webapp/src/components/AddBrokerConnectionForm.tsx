@@ -4,6 +4,7 @@ import { BrokerAccount } from "../brokers/types";
 import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
 import { encryptToken } from "../brokers/crypto";
 import { describeBrokerConnectionError } from "../brokers/connectionError";
+import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
 
 export function AddBrokerConnectionForm({
   isFirstConnection,
@@ -24,8 +25,11 @@ export function AddBrokerConnectionForm({
   const [error, setError] = useState<string | null>(null);
 
   const adapter = getBrokerAdapter(brokerId)!;
+  const syncAvailable = isBrokerSyncAvailable(brokerId);
 
   async function handleFetchAccounts() {
+    if (!syncAvailable) return;
+
     setError(null);
     setLoadingAccounts(true);
     try {
@@ -66,8 +70,16 @@ export function AddBrokerConnectionForm({
     <div className="broker-connections__add-form">
       {isFirstConnection && (
         <p className="broker-connections__warning">
-          Токен брокера сохраняется в файле портфеля в зашифрованном виде. Передавая portfolio.json
-          дальше, вы передаёте и зашифрованные токены — безопасность зависит от стойкости пароль-фразы.
+          Токен брокера сохраняется в файле портфеля в зашифрованном виде. Передавая `portfolio.json`
+          дальше, вы передаёте и зашифрованные токены; безопасность зависит от стойкости пароль-фразы.
+        </p>
+      )}
+      {brokerId === "tbank" && !syncAvailable && (
+        <p className="broker-connections__desktop-notice">
+          Синхронизация с Т-Банком доступна в приложении для Windows.{" "}
+          <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">
+            Скачать portable-версию
+          </a>
         </p>
       )}
       <div className="add-ticker__field">
@@ -94,7 +106,7 @@ export function AddBrokerConnectionForm({
             setAccounts(null);
           }}
         />
-        <button type="button" onClick={handleFetchAccounts} disabled={!tokenInput || loadingAccounts}>
+        <button type="button" onClick={handleFetchAccounts} disabled={!tokenInput || loadingAccounts || !syncAvailable}>
           {loadingAccounts ? "Проверка…" : "Проверить и продолжить"}
         </button>
       </div>

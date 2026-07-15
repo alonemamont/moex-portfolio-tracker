@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Main-window access to the T-Bank Invest API and MOEX ISS only",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://invest-public-api.tbank.ru/**"
+        },
+        {
+          "url": "https://iss.moex.com/**"
+        }
+      ]
+    }
+  ]
+}

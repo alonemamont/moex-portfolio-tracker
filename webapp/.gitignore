@@ -4,5 +4,6 @@ coverage
 reports
 test-results
 playwright-report
+src-tauri/target
 *.local
 *.tsbuildinfo

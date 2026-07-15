@@ -650,6 +650,16 @@ input[type="checkbox"] {
   margin: 0 0 10px;
 }
 
+.broker-connections__desktop-notice {
+  margin: 0;
+  color: var(--warn);
+  font-size: 0.82rem;
+}
+
+.broker-connections__desktop-notice a {
+  color: var(--accent);
+}
+
 .broker-connections__add-form {
   display: flex;
   flex-direction: column;

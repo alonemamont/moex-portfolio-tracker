@@ -1,66 +1,134 @@
-# IMOEX Portfolio Tracker
+# MOEX Portfolio Tracker
 
-Веб-приложение для отслеживания личного портфеля акций относительно
-состава индекса МосБиржи (IMOEX). Показывает актуальный состав индекса
-с рыночными данными, считает соответствие портфеля индексу и стоимость
-портфеля, хранит историю и строит графики.
+Локальное веб-приложение для отслеживания портфеля акций относительно индексов Московской биржи. Приложение получает актуальные рыночные данные через MOEX ISS, считает соответствие индексу, показывает структуру портфеля и сохраняет пользовательские данные в локальный файл без серверного хранения.
 
-## Ключевые принципы
+> [!NOTE]
+> Проект ориентирован на локальную работу с личным портфелем: без аккаунтов, без облачной базы и без передачи пользовательских данных на собственный backend.
 
-- **Без сервера и аккаунтов.** Личные данные пользователя (позиции,
-  история) не хранятся на сервере — только в файле, которым владеет
-  пользователь (загрузка/выгрузка через браузер).
-- **Live-данные из MOEX ISS API** (`https://iss.moex.com/iss`) — состав
-  индекса, цены, лотность, история дивидендов.
-- **Ручные поля защищены.** Коэффициент отклонения и количество купленных
-  акций — вводятся пользователем, обновление рыночных данных их никогда не
-  трогает.
-- **Позиции вне индекса не удаляются** — статус меняется на "вне индекса",
-  вес обнуляется, но цена/дивиденд по-прежнему обновляются и учитываются
-  в стоимости портфеля.
+## Возможности
 
-Подробное описание функциональности — в
-`docs/superpowers/specs/2026-07-10-web-app-functional-spec.md`.
+- Загрузка и сохранение локального файла портфеля.
+- Обновление состава индекса, цен, лотности и дивидендов через MOEX ISS.
+- Поддержка нескольких индексов и позиций вне индекса.
+- Расчёт стоимости портфеля, отклонения от целевой структуры и агрегированного compliance.
+- Вкладки с портфелем, графиками, секторами и транзакциями.
+- Импорт и синхронизация данных брокеров, включая `T-Bank` и `Финам`.
+- Работа в браузере и дополнительный desktop runtime через Tauri.
+
+## Почему это локальное приложение
+
+- Личные данные остаются у пользователя.
+- Источник истины для портфеля — файл, которым владеет пользователь.
+- Рыночные данные можно обновлять независимо от ручных полей.
+- Приложение не требует отдельного сервера для хранения портфельной истории.
 
 ## Стек
 
-- React 18 + TypeScript (strict)
-- Vite 5
-- Vitest (тесты)
-- Zod (валидация схемы файла портфеля)
-- Recharts (графики)
+- `React 18` + `TypeScript`
+- `Vite`
+- `Vitest` + `Testing Library`
+- `Playwright`
+- `Recharts`
+- `Zod`
+- `Tauri` для desktop-сценариев
 
-## Структура
+## Быстрый старт
 
-Всё приложение и тулинг — в `webapp/` (корневого `package.json` нет).
+Тулчейн приложения находится в каталоге `webapp/`.
 
-```
-webapp/
-  src/
-    components/   — React-компоненты (таблица позиций, вкладки, графики)
-    domain/        — расчёты, слияние данных, снимки истории
-    file/          — загрузка/сохранение файла портфеля, zod-схема
-    iss/           — клиент MOEX ISS API
-    portfolio/     — React-контекст, оркестрация обновления рыночных данных
-    concurrency/   — хелперы на базе pLimit
-docs/superpowers/  — спеки и планирование (не относится к коду приложения)
-```
+### Зависимости для запуска
 
-## Команды
+- `Node.js 20+`
+- `Rust` с target `x86_64-pc-windows-msvc`
+- Для desktop-режима на Windows: `Visual Studio 2022 Build Tools` или `Visual Studio 2022` с workload `Desktop development with C++`
 
-Выполняются из `webapp/`:
+Для проверки Rust toolchain:
 
 ```bash
-npm run dev          # dev-сервер Vite
-npm run build         # typecheck (оба tsconfig) + vite build
-npm run test           # прогон тестов (Vitest) один раз
-npm run test:watch    # Vitest в watch-режиме
-npm run typecheck     # только typecheck, без сборки
-npm run lint            # ESLint
+rustup show
 ```
 
-Один тестовый файл: `npx vitest run src/domain/calculations.test.ts`
-Один тест по имени: `npx vitest run -t "test name"`
+Для desktop-режима `Tauri` нужен системный линкер `link.exe` из MSVC. Если `npm run tauri:dev` падает с ошибкой `linker 'link.exe' not found`, значит не установлен Visual C++ toolchain или сборка запущена вне Developer PowerShell / без корректно настроенного `PATH`.
+
+```bash
+cd webapp
+npm install
+npm run dev
+```
+
+После запуска Vite приложение будет доступно локально. Для production-сборки:
+
+```bash
+npm run build
+```
+
+## Основные команды
+
+Запускать из `webapp/`:
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+npm run typecheck
+npm run test
+npm run test:coverage
+npm run test:e2e
+npm run test:contract
+npm run test:bench
+npm run test:mutation
+```
+
+Для desktop-режима:
+
+```bash
+npm run tauri:dev
+npm run tauri:build
+```
+
+На Windows для `Tauri` обычно нужно:
+
+```bash
+rustup default stable-x86_64-pc-windows-msvc
+```
+
+А затем запускать сборку после установки Visual C++ Build Tools.
+
+Если Build Tools установлены в `E:\work\tools\VS2022BuildTools`, можно запускать desktop-режим через готовые скрипты:
+
+```bash
+cd webapp
+tauri-dev.cmd
+```
+
+Скрипт сам поднимает `VsDevCmd.bat` и затем вызывает `npm run tauri:dev`.
+
+Для запуска из PowerShell можно использовать wrapper:
+
+```powershell
+cd webapp
+.\tauri-dev.ps1
+```
+
+Для desktop-сборки:
+
+```bash
+cd webapp
+tauri-build.cmd
+```
+
+Скрипт так же поднимает `VsDevCmd.bat` и затем вызывает `npm run tauri:build`.
+
+PowerShell-вариант:
+
+```powershell
+cd webapp
+.\tauri-build.ps1
+```
+
+> [!NOTE]
+> Синхронизация с `T-Bank` доступна только в desktop-версии на `Tauri`. В браузерном режиме этот сценарий ограничен политикой `CORS`.
 
 ## Подключение брокеров
 
@@ -100,14 +168,52 @@ Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Subject -match "Russian
 Приложение показывает это же объяснение в сообщении об ошибке, когда
 определяет сетевой сбой при подключении к Т-Банку.
 
-## Личные данные
+## Как устроены данные
 
-Гитигнорятся и не должны попадать в репозиторий: `*.xlsx`/`*.xlsm`,
-`positions.csv`, `portfolio.json` (файл сохранения приложения).
+Приложение разделяет:
 
-## Деплой
+- рыночные данные, которые можно безопасно обновлять из внешних источников;
+- ручные данные пользователя, такие как количество бумаг, настройки портфеля, транзакции и история;
+- справочные данные, например секторные привязки и конфигурацию подключения брокеров.
 
-GitHub Pages, путь `/moex-portfolio-tracker/` (см. `base` в
-`vite.config.ts`). Workflow `.github/workflows/deploy.yml` триггерится на
-push в `main`, но дефолтная ветка репозитория — `master` (автодеплой при
-обычных push пока не срабатывает — известная проблема, будет исправлена).
+> [!IMPORTANT]
+> Обновление рынка не должно затирать пользовательские ручные поля. Это один из базовых инвариантов проекта.
+
+## Архитектура
+
+```text
+webapp/
+  src/
+    brokers/       интеграции брокеров и адаптеры синхронизации
+    components/    UI-компоненты и вкладки приложения
+    domain/        расчёты, агрегации и бизнес-логика
+    file/          загрузка, сохранение и схема файла портфеля
+    iss/           клиент MOEX ISS и XML-парсинг
+    portfolio/     orchestration состояния портфеля и обновлений
+    errors/        обработка и отображение ошибок
+    testUtils/     тестовые моки и утилиты
+  e2e/             end-to-end сценарии Playwright
+  src-tauri/       Tauri runtime
+docs/superpowers/  дизайн-спеки и планы по развитию
+```
+
+## Качество и тестирование
+
+В проекте есть несколько уровней проверки:
+
+- unit- и integration-тесты на `Vitest`;
+- контрактные тесты для клиентов брокеров;
+- e2e-сценарии на `Playwright`;
+- benchmark и mutation testing для критичных частей доменной логики.
+
+Порог покрытия в конфигурации `Vitest` установлен на `70%` по statements, branches, functions и lines.
+
+## Публикация
+
+Веб-версия собирается с base path `/moex-portfolio-tracker/`, что подходит для публикации на GitHub Pages. Workflow-файлы CI и деплоя лежат в `.github/workflows/`.
+
+## Windows Portable Build
+
+Latest release: https://github.com/alonemamont/moex-portfolio-tracker/releases/latest
+
+T-Bank synchronization requires the Windows portable application. Finam synchronization remains available in the browser build on GitHub Pages.

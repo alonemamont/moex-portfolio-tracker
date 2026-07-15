@@ -9,6 +9,8 @@ import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
 import { applySyncDiff, SyncDiffRow } from "../brokers/syncDiff";
 import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
 import { BrokerSyncPreviewModal } from "./BrokerSyncPreviewModal";
+import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
+import { logBrokerSyncError, logBrokerSyncInfo } from "../brokers/diagnostics";
 
 const SOURCE = "broker-sync";
 
@@ -35,11 +37,31 @@ export function BrokerConnectionsModal({
   async function runSync(connection: BrokerConnection, token: string) {
     clearBySource(SOURCE);
     setSyncingId(connection.id);
+    logBrokerSyncInfo("ui.sync.start", {
+      connectionId: connection.id,
+      brokerId: connection.brokerId,
+      accountId: connection.accountId,
+      locked: getSessionToken(connection.id) === null,
+    });
     try {
       const rows = await fetchBrokerSyncPreview(file, connection, token);
+      logBrokerSyncInfo("ui.sync.previewReady", {
+        connectionId: connection.id,
+        rows: rows.length,
+      });
       setPreviewState({ connection, rows });
     } catch (error) {
-      addError(SOURCE, describeBrokerConnectionError(getBrokerAdapter(connection.brokerId), error));
+      logBrokerSyncError("ui.sync.failed", error, {
+        connectionId: connection.id,
+        brokerId: connection.brokerId,
+        accountId: connection.accountId,
+      });
+      const message = (error as Error).message;
+      if (message.startsWith("Не удалось проверить тикеры через MOEX ISS:")) {
+        addError(SOURCE, message);
+      } else {
+        addError(SOURCE, describeBrokerConnectionError(getBrokerAdapter(connection.brokerId), error));
+      }
     } finally {
       setSyncingId(null);
     }
@@ -112,6 +134,7 @@ export function BrokerConnectionsModal({
           {file.brokerConnections.map((connection) => {
             const adapter = getBrokerAdapter(connection.brokerId);
             const isLocked = getSessionToken(connection.id) === null;
+            const syncAvailable = isBrokerSyncAvailable(connection.brokerId);
             return (
               <div className="broker-connections__row" key={connection.id}>
                 <span>
@@ -127,7 +150,7 @@ export function BrokerConnectionsModal({
                   <button
                     type="button"
                     onClick={() => handleSyncClick(connection)}
-                    disabled={syncingId === connection.id}
+                    disabled={syncingId === connection.id || !syncAvailable}
                   >
                     {syncingId === connection.id ? "Синхронизация…" : "Синхронизировать"}
                   </button>
@@ -135,6 +158,14 @@ export function BrokerConnectionsModal({
                     Удалить
                   </button>
                 </div>
+                {connection.brokerId === "tbank" && !syncAvailable && (
+                  <p className="broker-connections__desktop-notice">
+                    Синхронизация с Т-Банком доступна в приложении для Windows.{" "}
+                    <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">
+                      Скачать portable-версию
+                    </a>
+                  </p>
+                )}
                 {unlockingId === connection.id && (
                   <div className="add-ticker__field">
                     <input
