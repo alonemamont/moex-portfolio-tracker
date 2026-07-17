@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { useEffect } from "react";
-import { render } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ErrorProvider } from "../errors/ErrorContext";
 import { PortfolioProvider } from "../portfolio/PortfolioContext";
 import { usePortfolio } from "../portfolio/usePortfolio";
@@ -12,7 +12,10 @@ vi.mock("../portfolio/useIsMobile", () => ({ useIsMobile: vi.fn() }));
 
 const sampleFile: PortfolioFile = {
   version: 1,
-  positions: [{ ticker: "GAZP", coefficient: 1, sharesOwned: 5 }],
+  positions: [
+    { ticker: "GAZP", coefficient: 1, sharesOwned: 5 },
+    { ticker: "SBER", coefficient: 1, sharesOwned: 3 },
+  ],
   sectors: {},
   history: [],
   pairs: [],
@@ -52,5 +55,35 @@ describe("PortfolioTab mobile switch", () => {
     const { container } = renderPortfolioTab();
     expect(container.querySelector(".position-card-list")).not.toBeNull();
     expect(container.querySelector(".positions-table")).toBeNull();
+  });
+});
+
+describe("PortfolioTab manual shares reset", () => {
+  it("disables the reset button when no visible position has a non-zero manual value", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab();
+
+    const search = screen.getByPlaceholderText("Поиск по тикеру или названию");
+    fireEvent.change(search, { target: { value: "NOPE" } });
+
+    expect(screen.getByRole("button", { name: "Сбросить вручную введённое" })).toBeDisabled();
+  });
+
+  it("resets manual shares only for currently visible positions with a non-zero manual value", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab();
+
+    const search = screen.getByPlaceholderText("Поиск по тикеру или названию");
+    fireEvent.change(search, { target: { value: "GAZP" } });
+
+    const resetButton = screen.getByRole("button", { name: "Сбросить вручную введённое" });
+    expect(resetButton).not.toBeDisabled();
+    fireEvent.click(resetButton);
+    fireEvent.click(screen.getByRole("button", { name: "Обнулить" }));
+
+    fireEvent.change(search, { target: { value: "" } });
+
+    expect(screen.getByRole("button", { name: "0" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "3" })).toBeInTheDocument();
   });
 });

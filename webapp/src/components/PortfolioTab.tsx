@@ -16,6 +16,7 @@ import { PositionsTable } from "./PositionsTable";
 import { PositionsCardList } from "./PositionsCardList";
 import { AddTickerModal } from "./AddTickerModal";
 import { PairPositionsModal } from "./PairPositionsModal";
+import { ResetManualSharesModal } from "./ResetManualSharesModal";
 import { PortfolioFile } from "../types";
 import { useIsMobile } from "../portfolio/useIsMobile";
 
@@ -33,6 +34,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const [onlyInIndex, setOnlyInIndex] = useState(() => loadOnlyInIndexPref());
   const [showAddTicker, setShowAddTicker] = useState(false);
   const [showPairPositions, setShowPairPositions] = useState(false);
+  const [showResetManualShares, setShowResetManualShares] = useState(false);
 
   useEffect(() => {
     saveSearchPref(search);
@@ -88,6 +90,8 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     [file?.brokerConnections]
   );
 
+  const affectedPositions = filteredPositions.filter((p) => p.manualSharesOwned !== 0);
+
   if (!file) return null;
 
   function updateField(ticker: string, field: "coefficient" | "sharesOwned", value: number) {
@@ -132,6 +136,13 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         </button>
         <button type="button" onClick={() => setShowPairPositions(true)} disabled={isUpdating}>
           Парные позиции
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowResetManualShares(true)}
+          disabled={isUpdating || affectedPositions.length === 0}
+        >
+          Сбросить вручную введённое
         </button>
       </div>
       <div className="controls-row">
@@ -190,6 +201,27 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
             setShowPairPositions(false);
           }}
           onClose={() => setShowPairPositions(false)}
+        />
+      )}
+      {showResetManualShares && (
+        <ResetManualSharesModal
+          positions={affectedPositions.map((p) => ({
+            ticker: p.ticker,
+            shortName: p.shortName,
+            manualSharesOwned: p.manualSharesOwned,
+          }))}
+          onConfirm={() => {
+            if (!file) return;
+            const tickers = new Set(affectedPositions.map((p) => p.ticker));
+            setFile({
+              ...file,
+              positions: file.positions.map((p) =>
+                tickers.has(p.ticker) ? { ...p, sharesOwned: 0 } : p
+              ),
+            });
+            setShowResetManualShares(false);
+          }}
+          onClose={() => setShowResetManualShares(false)}
         />
       )}
     </div>

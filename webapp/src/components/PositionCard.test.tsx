@@ -64,7 +64,7 @@ describe("PositionCard", () => {
     expect(screen.queryByText("Сектор")).not.toBeInTheDocument();
   });
 
-  it("calls onChangeCoefficient and onChangeSharesOwned from the expanded inputs", () => {
+  it("calls onChangeCoefficient from the coefficient input, and onChangeSharesOwned after clicking into the shares cell", () => {
     const onChangeCoefficient = vi.fn();
     const onChangeSharesOwned = vi.fn();
     render(
@@ -77,13 +77,15 @@ describe("PositionCard", () => {
     );
 
     fireEvent.click(screen.getByRole("button"));
-    const inputs = screen.getAllByRole("spinbutton");
-    expect(inputs).toHaveLength(2);
+    expect(screen.getAllByRole("spinbutton")).toHaveLength(1);
 
-    fireEvent.change(inputs[0], { target: { value: "2" } });
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "2" } });
     expect(onChangeCoefficient).toHaveBeenCalledWith("GAZP", 2);
 
-    fireEvent.change(inputs[1], { target: { value: "12" } });
+    fireEvent.click(screen.getByRole("button", { name: "10" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Куплено вручную" }), {
+      target: { value: "12" },
+    });
     expect(onChangeSharesOwned).toHaveBeenCalledWith("GAZP", 12);
   });
 
