@@ -149,4 +149,52 @@ describe("PortfolioTab reset positions", () => {
     expect(screen.getByRole("button", { name: "Т-Банк (0)" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Финам (1)" })).not.toBeDisabled();
   });
+
+  it("refreshes the table total and breakdown after resetting manual shares", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab({
+      ...brokerFile,
+      positions: [{
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 5,
+        brokerHoldings: [
+          { connectionId: "conn1", shares: 10, syncedAt: "2026-01-01T00:00:00.000Z" },
+          { connectionId: "conn2", shares: 7, syncedAt: "2026-01-01T00:00:00.000Z" },
+        ],
+      }],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ручные позиции (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Обнулить" }));
+
+    expect(screen.getByRole("button", { name: "17" })).toBeInTheDocument();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".shares-popover__trigger")!);
+    expect(screen.getByText("Итого").parentElement).toHaveTextContent("Итого17");
+  });
+
+  it("refreshes the table total and breakdown after resetting one broker", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab({
+      ...brokerFile,
+      positions: [{
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 5,
+        brokerHoldings: [
+          { connectionId: "conn1", shares: 10, syncedAt: "2026-01-01T00:00:00.000Z" },
+          { connectionId: "conn2", shares: 7, syncedAt: "2026-01-01T00:00:00.000Z" },
+        ],
+      }],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    fireEvent.click(screen.getByRole("button", { name: "Т-Банк (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Обнулить" }));
+
+    expect(screen.getByRole("button", { name: "12" })).toBeInTheDocument();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".shares-popover__trigger")!);
+    expect(screen.getByText("Итого").parentElement).toHaveTextContent("Итого12");
+  });
 });
