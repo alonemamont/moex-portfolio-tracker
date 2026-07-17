@@ -427,6 +427,25 @@ input[type="checkbox"] {
   border-bottom-color: var(--accent);
 }
 
+.shares-owned-cell__display {
+  width: 72px;
+  text-align: right;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  padding: 2px 2px;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.shares-owned-cell__display:hover,
+.shares-owned-cell__display:focus {
+  border-bottom-color: var(--accent);
+}
+
 .positions-table td.td-editable {
   background: var(--editable-bg);
 }
@@ -820,7 +839,8 @@ input[type="checkbox"] {
   color: var(--muted);
 }
 
-.position-card__row input[type="number"] {
+.position-card__row input[type="number"],
+.position-card__row .shares-owned-cell__display {
   min-height: 44px;
   min-width: 90px;
   font-size: 16px;
