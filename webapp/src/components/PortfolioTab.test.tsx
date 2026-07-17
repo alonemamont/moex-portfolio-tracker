@@ -24,19 +24,48 @@ const sampleFile: PortfolioFile = {
   transactions: [],
 };
 
-function Harness() {
+const dummyToken = { ciphertext: "c", iv: "i", salt: "s" };
+
+const brokerFile: PortfolioFile = {
+  version: 1,
+  positions: [
+    {
+      ticker: "GAZP",
+      coefficient: 1,
+      sharesOwned: 0,
+      brokerHoldings: [{ connectionId: "conn1", shares: 10, syncedAt: "2026-01-01T00:00:00.000Z" }],
+    },
+    {
+      ticker: "SBER",
+      coefficient: 1,
+      sharesOwned: 0,
+      brokerHoldings: [{ connectionId: "conn2", shares: 7, syncedAt: "2026-01-01T00:00:00.000Z" }],
+    },
+  ],
+  sectors: {},
+  history: [],
+  pairs: [],
+  brokerConnections: [
+    { id: "conn1", brokerId: "tbank", accountId: "acc1", label: "Т-Банк", encryptedToken: dummyToken },
+    { id: "conn2", brokerId: "finam", accountId: "acc2", label: "Финам", encryptedToken: dummyToken },
+  ],
+  brokerAccounts: [],
+  transactions: [],
+};
+
+function Harness({ file }: { file: PortfolioFile }) {
   const { setFile } = usePortfolio();
   useEffect(() => {
-    setFile(sampleFile);
-  }, [setFile]);
+    setFile(file);
+  }, [setFile, file]);
   return <PortfolioTab autoUpdateSignal={0} />;
 }
 
-function renderPortfolioTab() {
+function renderPortfolioTab(file: PortfolioFile = sampleFile) {
   return render(
     <ErrorProvider>
       <PortfolioProvider>
-        <Harness />
+        <Harness file={file} />
       </PortfolioProvider>
     </ErrorProvider>
   );
@@ -58,32 +87,66 @@ describe("PortfolioTab mobile switch", () => {
   });
 });
 
-describe("PortfolioTab manual shares reset", () => {
-  it("disables the reset button when no visible position has a non-zero manual value", () => {
+describe("PortfolioTab reset positions", () => {
+  it("disables the reset button when no visible position is affected by any source", () => {
     vi.mocked(useIsMobile).mockReturnValue(false);
     renderPortfolioTab();
 
     const search = screen.getByPlaceholderText("Поиск по тикеру или названию");
     fireEvent.change(search, { target: { value: "NOPE" } });
 
-    expect(screen.getByRole("button", { name: "Сбросить вручную введённое" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Сбросить позиции" })).toBeDisabled();
   });
 
-  it("resets manual shares only for currently visible positions with a non-zero manual value", () => {
+  it("resets manual shares only for currently visible positions, via the manual-source step", () => {
     vi.mocked(useIsMobile).mockReturnValue(false);
     renderPortfolioTab();
 
     const search = screen.getByPlaceholderText("Поиск по тикеру или названию");
     fireEvent.change(search, { target: { value: "GAZP" } });
 
-    const resetButton = screen.getByRole("button", { name: "Сбросить вручную введённое" });
+    const resetButton = screen.getByRole("button", { name: "Сбросить позиции" });
     expect(resetButton).not.toBeDisabled();
     fireEvent.click(resetButton);
+    fireEvent.click(screen.getByRole("button", { name: "Ручные позиции (1)" }));
     fireEvent.click(screen.getByRole("button", { name: "Обнулить" }));
 
     fireEvent.change(search, { target: { value: "" } });
 
     expect(screen.getByRole("button", { name: "0" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "3" })).toBeInTheDocument();
+  });
+
+  it("shows only Ручные позиции when there are no broker connections", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab();
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    expect(screen.getByRole("button", { name: "Ручные позиции (2)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Т-Банк/ })).not.toBeInTheDocument();
+  });
+
+  it("Назад returns to the source picker without applying the reset", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab();
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ручные позиции (2)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Назад" }));
+
+    expect(screen.getByRole("button", { name: "Ручные позиции (2)" })).toBeInTheDocument();
+  });
+
+  it("resets only the selected broker connection's holdings, leaving other connections and manual shares untouched", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab(brokerFile);
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    fireEvent.click(screen.getByRole("button", { name: "Т-Банк (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Обнулить" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    expect(screen.getByRole("button", { name: "Т-Банк (0)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Финам (1)" })).not.toBeDisabled();
   });
 });
