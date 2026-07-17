@@ -30,6 +30,8 @@ export function BrokerConnectionsModal({
   const [passphraseInput, setPassphraseInput] = useState("");
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [removingConnection, setRemovingConnection] = useState<BrokerConnection | null>(null);
+  const [removeHoldings, setRemoveHoldings] = useState(true);
   const [previewState, setPreviewState] = useState<{ connection: BrokerConnection; rows: SyncDiffRow[] } | null>(
     null
   );
@@ -101,12 +103,21 @@ export function BrokerConnectionsModal({
     }
   }
 
-  function handleRemoveConnection(connectionId: string) {
+  function handleRemoveConnection() {
+    if (!removingConnection) return;
+    const connectionId = removingConnection.id;
     clearSessionToken(connectionId);
     onUpdateFile({
       ...file,
       brokerConnections: file.brokerConnections.filter((c) => c.id !== connectionId),
+      positions: removeHoldings
+        ? file.positions.map((position) => ({
+            ...position,
+            brokerHoldings: (position.brokerHoldings ?? []).filter((holding) => holding.connectionId !== connectionId),
+          }))
+        : file.positions,
     });
+    setRemovingConnection(null);
   }
 
   function handleAddConnection(connection: BrokerConnection) {
@@ -154,7 +165,13 @@ export function BrokerConnectionsModal({
                   >
                     {syncingId === connection.id ? "Синхронизация…" : "Синхронизировать"}
                   </button>
-                  <button type="button" onClick={() => handleRemoveConnection(connection.id)}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemovingConnection(connection);
+                      setRemoveHoldings(true);
+                    }}
+                  >
                     Удалить
                   </button>
                 </div>
@@ -213,6 +230,29 @@ export function BrokerConnectionsModal({
           onConfirm={handleConfirmSync}
           onClose={() => setPreviewState(null)}
         />
+      )}
+      {removingConnection && (
+        <div className="modal-backdrop" role="dialog" aria-label="Удалить подключение">
+          <div className="modal">
+            <h2>Удалить подключение «{removingConnection.label}»?</h2>
+            <label>
+              <input
+                type="checkbox"
+                checked={removeHoldings}
+                onChange={(event) => setRemoveHoldings(event.target.checked)}
+              />
+              Удалить вместе с позициями
+            </label>
+            <div className="modal__actions">
+              <button type="button" onClick={handleRemoveConnection}>
+                Подтвердить удаление
+              </button>
+              <button type="button" onClick={() => setRemovingConnection(null)}>
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

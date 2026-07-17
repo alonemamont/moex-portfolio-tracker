@@ -195,13 +195,49 @@ describe("BrokerConnectionsModal", () => {
     expect(screen.queryByText("Синхронизация: Мой Т-Банк")).not.toBeInTheDocument();
   });
 
-  it("removes the connection and calls onUpdateFile with it filtered out", async () => {
+  it("removes the connection holdings by default", async () => {
     const connection = await makeConnection();
     const onUpdateFile = vi.fn();
-    const file = makeFile([connection]);
+    const file = {
+      ...makeFile([connection]),
+      positions: [{
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 5,
+        brokerHoldings: [{ connectionId: connection.id, shares: 10, syncedAt: "2026-01-01" }],
+      }],
+    };
     renderModal(file, onUpdateFile);
 
     fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    expect(screen.getByRole("checkbox", { name: "Удалить вместе с позициями" })).toBeChecked();
+    expect(onUpdateFile).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить удаление" }));
+
+    expect(onUpdateFile).toHaveBeenCalledWith({
+      ...file,
+      brokerConnections: [],
+      positions: [{ ...file.positions[0], brokerHoldings: [] }],
+    });
+  });
+
+  it("keeps holdings as orphan records when removal cleanup is unchecked", async () => {
+    const connection = await makeConnection();
+    const onUpdateFile = vi.fn();
+    const file = {
+      ...makeFile([connection]),
+      positions: [{
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 5,
+        brokerHoldings: [{ connectionId: connection.id, shares: 10, syncedAt: "2026-01-01" }],
+      }],
+    };
+    renderModal(file, onUpdateFile);
+
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Удалить вместе с позициями" }));
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить удаление" }));
 
     expect(onUpdateFile).toHaveBeenCalledWith({ ...file, brokerConnections: [] });
   });
@@ -215,6 +251,7 @@ describe("BrokerConnectionsModal", () => {
     expect(getSessionToken(connection.id)).toBe(TOKEN);
 
     fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить удаление" }));
 
     expect(getSessionToken(connection.id)).toBeNull();
   });

@@ -23,7 +23,7 @@ import { useIsMobile } from "../portfolio/useIsMobile";
 
 const SOURCE = "update";
 
-type ResetSource = { type: "manual" } | { type: "broker"; connectionId: string };
+type ResetSource = { type: "manual" } | { type: "broker"; connectionId: string } | { type: "orphaned" };
 type ResetFlow = { step: "source" } | { step: "confirm"; source: ResetSource } | null;
 
 export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number }) {
@@ -105,6 +105,13 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     ])
   );
 
+  const activeConnectionIds = new Set((file?.brokerConnections ?? []).map((connection) => connection.id));
+  const affectedOrphaned = filteredPositions.filter((position) =>
+    (position.brokerHoldings ?? []).some(
+      (holding) => !activeConnectionIds.has(holding.connectionId) && holding.shares !== 0
+    )
+  );
+
   const resetSourceOptions = [
     { key: "manual", label: "Ручные позиции", count: affectedManual.length },
     ...(file?.brokerConnections ?? []).map((c) => ({
@@ -112,10 +119,13 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       label: c.label,
       count: affectedByConnection.get(c.id)?.length ?? 0,
     })),
+    { key: "orphaned", label: "Удалённые holdings", count: affectedOrphaned.length },
   ];
 
   const resetHasAnyAffected =
-    affectedManual.length > 0 || Array.from(affectedByConnection.values()).some((list) => list.length > 0);
+    affectedManual.length > 0 ||
+    affectedOrphaned.length > 0 ||
+    Array.from(affectedByConnection.values()).some((list) => list.length > 0);
 
   const confirmSource = resetFlow?.step === "confirm" ? resetFlow.source : null;
 
@@ -124,6 +134,8 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       ? ""
       : confirmSource.type === "manual"
       ? "Обнулить вручную введённое количество"
+      : confirmSource.type === "orphaned"
+      ? "Обнулить holdings удалённых брокеров"
       : `Обнулить холдинги брокера «${brokerConnectionsById.get(confirmSource.connectionId) ?? ""}»`;
 
   const confirmPositions =
@@ -131,6 +143,14 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       ? []
       : confirmSource.type === "manual"
       ? affectedManual.map((p) => ({ ticker: p.ticker, shortName: p.shortName, currentValue: p.manualSharesOwned }))
+      : confirmSource.type === "orphaned"
+      ? affectedOrphaned.map((p) => ({
+          ticker: p.ticker,
+          shortName: p.shortName,
+          currentValue: (p.brokerHoldings ?? [])
+            .filter((holding) => !activeConnectionIds.has(holding.connectionId))
+            .reduce((sum, holding) => sum + holding.shares, 0),
+        }))
       : (affectedByConnection.get(confirmSource.connectionId) ?? []).map((p) => ({
           ticker: p.ticker,
           shortName: p.shortName,
@@ -255,7 +275,12 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           onSelect={(key) =>
             setResetFlow({
               step: "confirm",
-              source: key === "manual" ? { type: "manual" } : { type: "broker", connectionId: key },
+              source:
+                key === "manual"
+                  ? { type: "manual" }
+                  : key === "orphaned"
+                  ? { type: "orphaned" }
+                  : { type: "broker", connectionId: key },
             })
           }
           onClose={() => setResetFlow(null)}
@@ -275,6 +300,16 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
                 positions: file.positions.map((p) =>
                   tickers.has(p.ticker) ? { ...p, sharesOwned: 0 } : p
                 ),
+              });
+            } else if (source.type === "orphaned") {
+              setFile({
+                ...file,
+                positions: file.positions.map((position) => ({
+                  ...position,
+                  brokerHoldings: (position.brokerHoldings ?? []).filter((holding) =>
+                    activeConnectionIds.has(holding.connectionId)
+                  ),
+                })),
               });
             } else {
               const affected = affectedByConnection.get(source.connectionId) ?? [];

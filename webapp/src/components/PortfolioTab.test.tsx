@@ -197,4 +197,24 @@ describe("PortfolioTab reset positions", () => {
     fireEvent.click(document.querySelector<HTMLButtonElement>(".shares-popover__trigger")!);
     expect(screen.getByText("Итого").parentElement).toHaveTextContent("Итого12");
   });
+
+  it("offers retained deleted-broker holdings as a separate reset source", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    renderPortfolioTab({
+      ...sampleFile,
+      positions: [{
+        ticker: "GAZP",
+        coefficient: 1,
+        sharesOwned: 5,
+        brokerHoldings: [{ connectionId: "deleted-conn", shares: 10, syncedAt: "2026-01-01T00:00:00.000Z" }],
+      }],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить позиции" }));
+    fireEvent.click(screen.getByRole("button", { name: "Удалённые holdings (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Обнулить" }));
+
+    expect(screen.getByRole("button", { name: "5" })).toBeInTheDocument();
+    expect(document.querySelector(".shares-popover__trigger")).toBeNull();
+  });
 });
