@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const tauriFetch = vi.fn();
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: tauriFetch }));
 
-import { browserTransport, getTbankTransport, tauriTransport } from "./transport";
+import { browserTransport, getHttpTransport, tauriTransport } from "./transport";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -19,14 +19,14 @@ describe("HTTP transports", () => {
   });
 
   it("selects browser transport outside Tauri", () => {
-    expect(getTbankTransport()).toBe(browserTransport);
+    expect(getHttpTransport()).toBe(browserTransport);
   });
 
   it("selects and dynamically invokes Tauri transport inside Tauri", async () => {
     Object.defineProperty(window, "__TAURI_INTERNALS__", { configurable: true, value: {} });
     const response = new Response("ok");
     tauriFetch.mockResolvedValue(response);
-    expect(getTbankTransport()).toBe(tauriTransport);
+    expect(getHttpTransport()).toBe(tauriTransport);
     await expect(tauriTransport("https://invest-public-api.tbank.ru/rest/test")).resolves.toBe(response);
     expect(tauriFetch).toHaveBeenCalledOnce();
   });

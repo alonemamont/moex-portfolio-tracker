@@ -3,7 +3,7 @@ import { usePortfolio } from "./usePortfolio";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
 import { groupPairedPositions } from "../domain/groupPairedPositions";
 import { createSectorResolver } from "../domain/sectors";
-import { computeAverageCompliance, computeDeviationRub, findDeviationExtremes, DeviationEntry } from "../domain/calculations";
+import { computeAverageCompliance, computeDeviationRub, findDeviationExtremes, sumPositionValues, DeviationEntry } from "../domain/calculations";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
 import { CalculatedPosition, LiveData, PortfolioFile } from "../types";
 
@@ -34,7 +34,7 @@ export function computeCalculatedPositionsResult(
     buildCalculatedPositions(file.positions, liveByTicker, resolveSector, file.pairs),
     file.pairs
   );
-  const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
+  const portfolioValue = sumPositionValues(calculated);
   const avgCompliance = computeAverageCompliance(calculated.map((p) => p.compliance));
 
   const pairedTickers = new Set(file.pairs.flatMap((pair) => pair.tickers));

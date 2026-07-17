@@ -17,12 +17,22 @@ export function ChartsTab() {
   const effectiveTicker =
     selectedTicker && allTickers.includes(selectedTicker) ? selectedTicker : allTickers[0] ?? "";
 
-  const priceData = history.map((h) => ({
-    x: h.timestamp,
-    y: h.snapshot.find((row) => row.ticker === effectiveTicker)?.price ?? null,
-  }));
-  const valueData = history.map((h) => ({ x: h.timestamp, y: h.portfolioValue }));
-  const complianceData = history.map((h) => ({ x: h.timestamp, y: h.avgCompliance ?? 0 }));
+  const priceData = useMemo(
+    () =>
+      history.map((h) => ({
+        x: h.timestamp,
+        y: h.snapshot.find((row) => row.ticker === effectiveTicker)?.price ?? null,
+      })),
+    [history, effectiveTicker]
+  );
+  const valueData = useMemo(
+    () => history.map((h) => ({ x: h.timestamp, y: h.portfolioValue })),
+    [history]
+  );
+  const complianceData = useMemo(
+    () => history.map((h) => ({ x: h.timestamp, y: h.avgCompliance ?? 0 })),
+    [history]
+  );
 
   if (history.length === 0) {
     return <p className="empty-state">История пуста — данные появятся после первого обновления.</p>;

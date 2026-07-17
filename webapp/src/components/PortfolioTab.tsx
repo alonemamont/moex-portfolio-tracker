@@ -20,11 +20,17 @@ import { ResetSourceModal } from "./ResetSourceModal";
 import { ResetPositionsModal } from "./ResetPositionsModal";
 import { PortfolioFile } from "../types";
 import { useIsMobile } from "../portfolio/useIsMobile";
-import { isOrphanedHolding } from "../domain/sharesBreakdown";
+import {
+  ResetSource,
+  resetSourceFromKey,
+  groupAffectedPositions,
+  buildResetConfirmation,
+  applyPositionsReset,
+} from "../domain/resetPositions";
+import { describeDiagnosticError } from "../brokers/diagnostics";
 
 const SOURCE = "update";
 
-type ResetSource = { type: "manual" } | { type: "broker"; connectionId: string } | { type: "orphaned" };
 type ResetFlow = { step: "source" } | { step: "confirm"; source: ResetSource } | null;
 
 export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number }) {
@@ -67,7 +73,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       setFile((current) => current ? mergeCompletedMarketUpdate(current, updated) : current);
       setLiveByTicker(newLiveByTicker);
     } catch (error) {
-      addError(SOURCE, `Не удалось обновить рыночные данные: ${(error as Error).message}`);
+      addError(SOURCE, `Не удалось обновить рыночные данные: ${describeDiagnosticError(error)}`);
     } finally {
       setIsUpdating(false);
     }
@@ -95,30 +101,16 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     [file?.brokerConnections]
   );
 
-  const affectedManual = filteredPositions.filter((p) => p.manualSharesOwned !== 0);
-
-  const affectedByConnection = new Map(
-    (file?.brokerConnections ?? []).map((c) => [
-      c.id,
-      filteredPositions.filter((p) =>
-        (p.brokerHoldings ?? []).some((h) => h.connectionId === c.id && h.shares !== 0)
-      ),
-    ])
-  );
-
   const activeConnectionIds = useMemo(
     () => new Set(brokerConnectionsById.keys()),
     [brokerConnectionsById]
   );
-  const affectedOrphaned = useMemo(
-    () =>
-      filteredPositions.filter((position) =>
-        (position.brokerHoldings ?? []).some(
-          (holding) => isOrphanedHolding(holding.connectionId, activeConnectionIds) && holding.shares !== 0
-        )
-      ),
-    [filteredPositions, activeConnectionIds]
+
+  const affected = useMemo(
+    () => groupAffectedPositions(filteredPositions, file?.brokerConnections ?? [], activeConnectionIds),
+    [filteredPositions, file?.brokerConnections, activeConnectionIds]
   );
+  const { affectedManual, affectedByConnection, affectedOrphaned } = affected;
 
   const resetSourceOptions = [
     { key: "manual", label: "Ручные позиции", count: affectedManual.length },
@@ -136,37 +128,9 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     Array.from(affectedByConnection.values()).some((list) => list.length > 0);
 
   const confirmSource = resetFlow?.step === "confirm" ? resetFlow.source : null;
-
-  let confirmTitle = "";
-  let confirmPositions: { ticker: string; shortName: string; currentValue: number }[] = [];
-  switch (confirmSource?.type) {
-    case "manual":
-      confirmTitle = "Обнулить вручную введённое количество";
-      confirmPositions = affectedManual.map((p) => ({
-        ticker: p.ticker,
-        shortName: p.shortName,
-        currentValue: p.manualSharesOwned,
-      }));
-      break;
-    case "orphaned":
-      confirmTitle = "Обнулить holdings удалённых брокеров";
-      confirmPositions = affectedOrphaned.map((p) => ({
-        ticker: p.ticker,
-        shortName: p.shortName,
-        currentValue: (p.brokerHoldings ?? [])
-          .filter((holding) => isOrphanedHolding(holding.connectionId, activeConnectionIds))
-          .reduce((sum, holding) => sum + holding.shares, 0),
-      }));
-      break;
-    case "broker":
-      confirmTitle = `Обнулить холдинги брокера «${brokerConnectionsById.get(confirmSource.connectionId) ?? ""}»`;
-      confirmPositions = (affectedByConnection.get(confirmSource.connectionId) ?? []).map((p) => ({
-        ticker: p.ticker,
-        shortName: p.shortName,
-        currentValue: (p.brokerHoldings ?? []).find((h) => h.connectionId === confirmSource.connectionId)?.shares ?? 0,
-      }));
-      break;
-  }
+  const { title: confirmTitle, positions: confirmPositions } = confirmSource
+    ? buildResetConfirmation(confirmSource, affected, activeConnectionIds, brokerConnectionsById)
+    : { title: "", positions: [] };
 
   if (!file) return null;
 
@@ -283,15 +247,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         <ResetSourceModal
           options={resetSourceOptions}
           onSelect={(key) =>
-            setResetFlow({
-              step: "confirm",
-              source:
-                key === "manual"
-                  ? { type: "manual" }
-                  : key === "orphaned"
-                  ? { type: "orphaned" }
-                  : { type: "broker", connectionId: key },
-            })
+            setResetFlow({ step: "confirm", source: resetSourceFromKey(key) })
           }
           onClose={() => setResetFlow(null)}
         />
@@ -302,47 +258,10 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           positions={confirmPositions}
           onConfirm={() => {
             if (!file) return;
-            const source = resetFlow.source;
-            if (source.type === "manual") {
-              const tickers = new Set(affectedManual.map((p) => p.ticker));
-              setFile({
-                ...file,
-                positions: file.positions.map((p) =>
-                  tickers.has(p.ticker) ? { ...p, sharesOwned: 0 } : p
-                ),
-              });
-            } else if (source.type === "orphaned") {
-              const tickers = new Set(affectedOrphaned.map((p) => p.ticker));
-              setFile({
-                ...file,
-                positions: file.positions.map((p) =>
-                  tickers.has(p.ticker)
-                    ? {
-                        ...p,
-                        brokerHoldings: (p.brokerHoldings ?? []).filter(
-                          (h) => !isOrphanedHolding(h.connectionId, activeConnectionIds)
-                        ),
-                      }
-                    : p
-                ),
-              });
-            } else {
-              const affected = affectedByConnection.get(source.connectionId) ?? [];
-              const tickers = new Set(affected.map((p) => p.ticker));
-              setFile({
-                ...file,
-                positions: file.positions.map((p) =>
-                  tickers.has(p.ticker)
-                    ? {
-                        ...p,
-                        brokerHoldings: (p.brokerHoldings ?? []).filter(
-                          (h) => h.connectionId !== source.connectionId
-                        ),
-                      }
-                    : p
-                ),
-              });
-            }
+            setFile({
+              ...file,
+              positions: applyPositionsReset(file.positions, resetFlow.source, affected, activeConnectionIds),
+            });
             setResetFlow(null);
           }}
           onBack={() => setResetFlow({ step: "source" })}

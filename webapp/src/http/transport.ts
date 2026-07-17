@@ -12,7 +12,3 @@ export const tauriTransport: HttpTransport = async (input, init) => {
 export function getHttpTransport(): HttpTransport {
   return isTauriRuntime() ? tauriTransport : browserTransport;
 }
-
-export function getTbankTransport(): HttpTransport {
-  return getHttpTransport();
-}

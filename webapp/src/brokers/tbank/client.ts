@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getTbankTransport, HttpTransport } from "../../http/transport";
+import { getHttpTransport, HttpTransport } from "../../http/transport";
 import { diagnoseTbankPortfolioRequest } from "../../runtime/tbankDesktopDiagnostics";
 import { describeDiagnosticError, logBrokerSyncWarn } from "../diagnostics";
 
@@ -123,7 +123,7 @@ async function tbankRequest<T>(
 
 export async function fetchTbankAccounts(
   token: string,
-  transport: HttpTransport = getTbankTransport()
+  transport: HttpTransport = getHttpTransport()
 ): Promise<TbankAccount[]> {
   const result = await tbankRequest(
     token,
@@ -139,7 +139,7 @@ export async function fetchTbankAccounts(
 export async function fetchTbankPortfolio(
   token: string,
   accountId: string,
-  transport: HttpTransport = getTbankTransport()
+  transport: HttpTransport = getHttpTransport()
 ): Promise<TbankPortfolioPosition[]> {
   const result = await tbankRequest(
     token,
@@ -155,7 +155,7 @@ export async function fetchTbankPortfolio(
 export async function resolveTbankTicker(
   token: string,
   instrumentUid: string,
-  transport: HttpTransport = getTbankTransport()
+  transport: HttpTransport = getHttpTransport()
 ): Promise<string | null> {
   try {
     const result = await tbankRequest(

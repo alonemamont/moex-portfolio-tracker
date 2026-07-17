@@ -16,6 +16,8 @@ export interface BrokerAdapter {
    * network/TLS layer (a TypeError, not an HTTP-status rejection from the broker).
    */
   networkErrorHint?: string;
+  /** True if sync requires the desktop (Tauri) runtime — e.g. TLS chain unavailable in-browser. */
+  requiresDesktopRuntime?: boolean;
   listAccounts(token: string): Promise<BrokerAccount[]>;
   fetchHoldings(token: string, accountId: string): Promise<BrokerHoldingRaw[]>;
 }

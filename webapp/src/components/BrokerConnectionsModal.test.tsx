@@ -22,7 +22,7 @@ vi.mock("../brokers/registry", () => ({
     { id: "finam", label: "Finam", listAccounts: vi.fn(), fetchHoldings: vi.fn() },
   ],
   getBrokerAdapter: (id: string) => {
-    if (id === "tbank") return { id: "tbank", label: "Т-Банк" };
+    if (id === "tbank") return { id: "tbank", label: "Т-Банк", requiresDesktopRuntime: true };
     if (id === "finam") return { id: "finam", label: "Finam" };
     return undefined;
   },
@@ -30,9 +30,10 @@ vi.mock("../brokers/registry", () => ({
 
 vi.mock("../portfolio/runBrokerSync", () => ({
   fetchBrokerSyncPreview: vi.fn(),
+  IssLookupError: class IssLookupError extends Error {},
 }));
 
-import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
+import { fetchBrokerSyncPreview, IssLookupError } from "../portfolio/runBrokerSync";
 
 const PASSPHRASE = "hunter2";
 const TOKEN = "real-broker-token";
@@ -183,7 +184,7 @@ describe("BrokerConnectionsModal", () => {
     tauriRuntime = true;
     const connection = await makeConnection();
     vi.mocked(fetchBrokerSyncPreview).mockRejectedValueOnce(
-      new Error("Не удалось проверить тикеры через MOEX ISS: Failed to fetch")
+      new IssLookupError("Не удалось проверить тикеры через MOEX ISS: Failed to fetch")
     );
     renderModal(makeFile([connection]));
 

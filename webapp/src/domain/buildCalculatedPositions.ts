@@ -13,6 +13,7 @@ import {
   computePairedTargets,
   computePairMemberTargetShares,
   computeTotalSharesOwned,
+  sumPositionValues,
   PairedTargets,
 } from "./calculations";
 
@@ -39,7 +40,7 @@ export function buildCalculatedPositions(
     return { position, live: resolvedLive, positionValue, totalShares };
   });
 
-  const portfolioValue = withLive.reduce((sum, { positionValue }) => sum + positionValue, 0);
+  const portfolioValue = sumPositionValues(withLive);
 
   const pairByTicker = new Map<string, Pair>();
   for (const pair of pairs) {

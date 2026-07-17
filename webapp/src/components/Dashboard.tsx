@@ -1,6 +1,7 @@
 import { usePortfolio } from "../portfolio/usePortfolio";
 import { useCalculatedPositions } from "../portfolio/useCalculatedPositions";
 import { DeviationEntry } from "../domain/calculations";
+import { formatNumber } from "./formatPosition";
 
 function formatDeviationEntry(entry: DeviationEntry | null): string {
   if (entry === null) return "—";
@@ -17,10 +18,8 @@ export function Dashboard() {
 
   return (
     <div className="dashboard">
-      <span data-label="Общая стоимость">{portfolioValue.toFixed(2)}</span>
-      <span data-label="Среднее соответствие">
-        {avgCompliance === null ? "—" : avgCompliance.toFixed(2)}
-      </span>
+      <span data-label="Общая стоимость">{formatNumber(portfolioValue)}</span>
+      <span data-label="Среднее соответствие">{formatNumber(avgCompliance)}</span>
       <span data-label="Наибольший избыток">{formatDeviationEntry(largestSurplus)}</span>
       <span data-label="Наибольшая недостача">{formatDeviationEntry(largestShortfall)}</span>
     </div>

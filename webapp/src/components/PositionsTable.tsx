@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { CalculatedPosition, Pair } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { buildSharesBreakdownRows } from "../domain/sharesBreakdown";
@@ -61,10 +62,13 @@ export function PositionsTable({
   onChangeCoefficient: (ticker: string, value: number) => void;
   onChangeSharesOwned: (ticker: string, value: number) => void;
 }) {
-  const pairedTickers = new Map<string, Pair>();
-  for (const pair of pairs) {
-    for (const ticker of pair.tickers) pairedTickers.set(ticker, pair);
-  }
+  const pairedTickers = useMemo(() => {
+    const map = new Map<string, Pair>();
+    for (const pair of pairs) {
+      for (const ticker of pair.tickers) map.set(ticker, pair);
+    }
+    return map;
+  }, [pairs]);
 
   return (
     <div className="table-scroll">

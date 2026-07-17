@@ -5,7 +5,7 @@ import { getBrokerAdapter } from "../brokers/registry";
 import { decryptToken } from "../brokers/crypto";
 import { describeBrokerConnectionError } from "../brokers/connectionError";
 import { getSessionToken, setSessionToken, clearSessionToken } from "../brokers/tokenSession";
-import { fetchBrokerSyncPreview } from "../portfolio/runBrokerSync";
+import { fetchBrokerSyncPreview, IssLookupError } from "../portfolio/runBrokerSync";
 import { applySyncDiff, SyncDiffRow } from "../brokers/syncDiff";
 import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
 import { BrokerSyncPreviewModal } from "./BrokerSyncPreviewModal";
@@ -59,9 +59,8 @@ export function BrokerConnectionsModal({
         brokerId: connection.brokerId,
         accountId: connection.accountId,
       });
-      const message = (error as Error).message;
-      if (message.startsWith("Не удалось проверить тикеры через MOEX ISS:")) {
-        addError(SOURCE, message);
+      if (error instanceof IssLookupError) {
+        addError(SOURCE, error.message);
       } else {
         addError(SOURCE, describeBrokerConnectionError(getBrokerAdapter(connection.brokerId), error));
       }
@@ -171,7 +170,7 @@ export function BrokerConnectionsModal({
                     Удалить
                   </button>
                 </div>
-                {connection.brokerId === "tbank" && !syncAvailable && (
+                {!syncAvailable && (
                   <p className="broker-connections__desktop-notice">
                     Синхронизация с Т-Банком доступна в приложении для Windows.{" "}
                     <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">

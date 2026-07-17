@@ -4,6 +4,7 @@ import { BrokerAccount } from "../brokers/types";
 import { BROKER_REGISTRY, getBrokerAdapter } from "../brokers/registry";
 import { encryptToken } from "../brokers/crypto";
 import { describeBrokerConnectionError } from "../brokers/connectionError";
+import { describeDiagnosticError } from "../brokers/diagnostics";
 import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
 
 export function AddBrokerConnectionForm({
@@ -60,7 +61,7 @@ export function AddBrokerConnectionForm({
         encryptedToken,
       });
     } catch (err) {
-      setError(`Не удалось зашифровать токен: ${(err as Error).message}`);
+      setError(`Не удалось зашифровать токен: ${describeDiagnosticError(err)}`);
     }
   }
 
@@ -74,7 +75,7 @@ export function AddBrokerConnectionForm({
           дальше, вы передаёте и зашифрованные токены; безопасность зависит от стойкости пароль-фразы.
         </p>
       )}
-      {brokerId === "tbank" && !syncAvailable && (
+      {!syncAvailable && (
         <p className="broker-connections__desktop-notice">
           Синхронизация с Т-Банком доступна в приложении для Windows.{" "}
           <a href={WINDOWS_RELEASE_URL} target="_blank" rel="noreferrer">

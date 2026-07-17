@@ -23,6 +23,10 @@ export function computePortfolioValue(
   return positions.reduce((sum, p) => sum + computePositionValue(p.price, p.sharesOwned), 0);
 }
 
+export function sumPositionValues(positions: { positionValue: number }[]): number {
+  return positions.reduce((sum, p) => sum + p.positionValue, 0);
+}
+
 export function computeActualShare(positionValue: number, portfolioValue: number): number | null {
   if (portfolioValue === 0) return null;
   return (positionValue / portfolioValue) * 100;

@@ -6,6 +6,7 @@ import { logBrokerSyncInfo, logBrokerSyncWarn } from "../diagnostics";
 export const tbankAdapter: BrokerAdapter = {
   id: "tbank",
   label: "Т-Банк",
+  requiresDesktopRuntime: true,
 
   networkErrorHint:
     "T-Invest API (invest-public-api.tbank.ru) отдаёт сертификат, подписанный Russian Trusted Sub CA — " +

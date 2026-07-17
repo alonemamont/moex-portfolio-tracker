@@ -15,6 +15,7 @@ vi.mock("../brokers/registry", () => {
   const tbank = {
     id: "tbank",
     label: "Т-Банк",
+    requiresDesktopRuntime: true,
     listAccounts: (...args: unknown[]) => listAccounts(...args),
     fetchHoldings: vi.fn(),
   };

@@ -1,17 +1,9 @@
-const SELECTED_INDEX_KEY = "moex-portfolio-tracker:selectedIndex";
+import { makeLocalStoragePref } from "./localStoragePref";
 
 export function loadSelectedIndexPref(defaultIndexId: string): string {
-  try {
-    return localStorage.getItem(SELECTED_INDEX_KEY) ?? defaultIndexId;
-  } catch {
-    return defaultIndexId;
-  }
+  return makeLocalStoragePref("moex-portfolio-tracker:selectedIndex", defaultIndexId).load();
 }
 
 export function saveSelectedIndexPref(value: string): void {
-  try {
-    localStorage.setItem(SELECTED_INDEX_KEY, value);
-  } catch {
-    // Swallow error — persistence is best-effort
-  }
+  makeLocalStoragePref("moex-portfolio-tracker:selectedIndex", value).save(value);
 }

@@ -4,6 +4,13 @@ import { buildSyncDiff, SyncDiffRow } from "../brokers/syncDiff";
 import { fetchSecurities } from "../iss/client";
 import { logBrokerSyncError, logBrokerSyncInfo } from "../brokers/diagnostics";
 
+export class IssLookupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IssLookupError";
+  }
+}
+
 export async function fetchBrokerSyncPreview(
   file: PortfolioFile,
   connection: BrokerConnection,
@@ -45,7 +52,8 @@ export async function fetchBrokerSyncPreview(
       connectionId: connection.id,
       candidateTickers,
     });
-    throw new Error(`Не удалось проверить тикеры через MOEX ISS: ${(error as Error).message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new IssLookupError(`Не удалось проверить тикеры через MOEX ISS: ${message}`);
   }
 
   logBrokerSyncInfo("sync.preview.issLookup.loaded", {

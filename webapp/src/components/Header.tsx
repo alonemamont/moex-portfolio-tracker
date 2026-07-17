@@ -15,6 +15,7 @@ import {
   downloadPortfolioFile,
 } from "../file/savePortfolioFile";
 import { BrokerConnectionsModal } from "./BrokerConnectionsModal";
+import { describeDiagnosticError } from "../brokers/diagnostics";
 
 const SOURCE = "file";
 const INDEX_SOURCE = "index-switch";
@@ -50,7 +51,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
       }
     } catch (error) {
       if ((error as DOMException)?.name === "AbortError") return;
-      addError(SOURCE, `Не удалось загрузить файл: ${(error as Error).message}`);
+      addError(SOURCE, `Не удалось загрузить файл: ${describeDiagnosticError(error)}`);
     }
   }
 
@@ -64,7 +65,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
       setFileHandle(null);
       onFileLoaded();
     } catch (error) {
-      addError(SOURCE, `Не удалось загрузить файл: ${(error as Error).message}`);
+      addError(SOURCE, `Не удалось загрузить файл: ${describeDiagnosticError(error)}`);
     }
   }
 
@@ -75,7 +76,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
       setFile(empty);
       setFileHandle(null);
     } catch (error) {
-      addError(SOURCE, `Не удалось создать пустой портфель: ${(error as Error).message}`);
+      addError(SOURCE, `Не удалось создать пустой портфель: ${describeDiagnosticError(error)}`);
     }
   }
 
@@ -93,7 +94,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
       }
     } catch (error) {
       if ((error as DOMException)?.name === "AbortError") return;
-      addError(SOURCE, `Не удалось сохранить файл: ${(error as Error).message}`);
+      addError(SOURCE, `Не удалось сохранить файл: ${describeDiagnosticError(error)}`);
     }
   }
 
@@ -112,7 +113,7 @@ export function Header({ onFileLoaded }: { onFileLoaded: () => void }) {
       setLiveByTicker(newLiveByTicker);
       setSelectedIndex(newIndexId);
     } catch (error) {
-      addError(INDEX_SOURCE, `Не удалось переключить индекс: ${(error as Error).message}`);
+      addError(INDEX_SOURCE, `Не удалось переключить индекс: ${describeDiagnosticError(error)}`);
     } finally {
       setIsUpdating(false);
     }
