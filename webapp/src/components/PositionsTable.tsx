@@ -2,6 +2,7 @@ import { CalculatedPosition, Pair } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { buildSharesBreakdownRows } from "../domain/sharesBreakdown";
 import { SharesBreakdownPopover } from "./SharesBreakdownPopover";
+import { SharesOwnedCell } from "./SharesOwnedCell";
 import { formatNumber } from "./formatPosition";
 
 function formatMoney(value: number | null, digits = 2): string {
@@ -127,11 +128,10 @@ export function PositionsTable({
                 />
               </td>
               <td className="num td-editable">
-                <input
-                  type="number"
-                  step="1"
-                  value={p.manualSharesOwned}
-                  onChange={(e) => onChangeSharesOwned(p.ticker, Number(e.target.value))}
+                <SharesOwnedCell
+                  manualSharesOwned={p.manualSharesOwned}
+                  total={p.sharesOwned}
+                  onChange={(value) => onChangeSharesOwned(p.ticker, value)}
                 />
                 {p.brokerHoldings && p.brokerHoldings.length > 0 && (
                   <SharesBreakdownPopover

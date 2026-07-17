@@ -4,6 +4,7 @@ import { ComplianceGauge } from "./ComplianceGauge";
 import { buildExpandedFields, formatNumber } from "./formatPosition";
 import { buildSharesBreakdownRows } from "../domain/sharesBreakdown";
 import { SharesBreakdownPopover } from "./SharesBreakdownPopover";
+import { SharesOwnedCell } from "./SharesOwnedCell";
 
 export function PositionCard({
   position,
@@ -53,11 +54,10 @@ export function PositionCard({
               return (
                 <div className="position-card__row" key="sharesOwned">
                   <span className="position-card__label">Куплено</span>
-                  <input
-                    type="number"
-                    step="1"
-                    value={position.manualSharesOwned}
-                    onChange={(e) => onChangeSharesOwned(position.ticker, Number(e.target.value))}
+                  <SharesOwnedCell
+                    manualSharesOwned={position.manualSharesOwned}
+                    total={position.sharesOwned}
+                    onChange={(value) => onChangeSharesOwned(position.ticker, value)}
                   />
                   {position.brokerHoldings && position.brokerHoldings.length > 0 && (
                     <SharesBreakdownPopover
