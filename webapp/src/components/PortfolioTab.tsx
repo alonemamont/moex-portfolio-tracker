@@ -16,11 +16,15 @@ import { PositionsTable } from "./PositionsTable";
 import { PositionsCardList } from "./PositionsCardList";
 import { AddTickerModal } from "./AddTickerModal";
 import { PairPositionsModal } from "./PairPositionsModal";
-import { ResetManualSharesModal } from "./ResetManualSharesModal";
+import { ResetSourceModal } from "./ResetSourceModal";
+import { ResetPositionsModal } from "./ResetPositionsModal";
 import { PortfolioFile } from "../types";
 import { useIsMobile } from "../portfolio/useIsMobile";
 
 const SOURCE = "update";
+
+type ResetSource = { type: "manual" } | { type: "broker"; connectionId: string };
+type ResetFlow = { step: "source" } | { step: "confirm"; source: ResetSource } | null;
 
 export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number }) {
   const { file, setFile, liveByTicker, setLiveByTicker, selectedIndex, isUpdating, setIsUpdating } =
@@ -34,7 +38,7 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
   const [onlyInIndex, setOnlyInIndex] = useState(() => loadOnlyInIndexPref());
   const [showAddTicker, setShowAddTicker] = useState(false);
   const [showPairPositions, setShowPairPositions] = useState(false);
-  const [showResetManualShares, setShowResetManualShares] = useState(false);
+  const [resetFlow, setResetFlow] = useState<ResetFlow>(null);
 
   useEffect(() => {
     saveSearchPref(search);
@@ -90,7 +94,49 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     [file?.brokerConnections]
   );
 
-  const affectedPositions = filteredPositions.filter((p) => p.manualSharesOwned !== 0);
+  const affectedManual = filteredPositions.filter((p) => p.manualSharesOwned !== 0);
+
+  const affectedByConnection = new Map(
+    (file?.brokerConnections ?? []).map((c) => [
+      c.id,
+      filteredPositions.filter((p) =>
+        (p.brokerHoldings ?? []).some((h) => h.connectionId === c.id && h.shares !== 0)
+      ),
+    ])
+  );
+
+  const resetSourceOptions = [
+    { key: "manual", label: "Ручные позиции", count: affectedManual.length },
+    ...(file?.brokerConnections ?? []).map((c) => ({
+      key: c.id,
+      label: c.label,
+      count: affectedByConnection.get(c.id)?.length ?? 0,
+    })),
+  ];
+
+  const resetHasAnyAffected =
+    affectedManual.length > 0 || Array.from(affectedByConnection.values()).some((list) => list.length > 0);
+
+  const confirmSource = resetFlow?.step === "confirm" ? resetFlow.source : null;
+
+  const confirmTitle =
+    confirmSource === null
+      ? ""
+      : confirmSource.type === "manual"
+      ? "Обнулить вручную введённое количество"
+      : `Обнулить холдинги брокера «${brokerConnectionsById.get(confirmSource.connectionId) ?? ""}»`;
+
+  const confirmPositions =
+    confirmSource === null
+      ? []
+      : confirmSource.type === "manual"
+      ? affectedManual.map((p) => ({ ticker: p.ticker, shortName: p.shortName, currentValue: p.manualSharesOwned }))
+      : (affectedByConnection.get(confirmSource.connectionId) ?? []).map((p) => ({
+          ticker: p.ticker,
+          shortName: p.shortName,
+          currentValue:
+            (p.brokerHoldings ?? []).find((h) => h.connectionId === confirmSource.connectionId)?.shares ?? 0,
+        }));
 
   if (!file) return null;
 
@@ -139,10 +185,10 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
         </button>
         <button
           type="button"
-          onClick={() => setShowResetManualShares(true)}
-          disabled={isUpdating || affectedPositions.length === 0}
+          onClick={() => setResetFlow({ step: "source" })}
+          disabled={isUpdating || !resetHasAnyAffected}
         >
-          Сбросить вручную введённое
+          Сбросить позиции
         </button>
       </div>
       <div className="controls-row">
@@ -203,25 +249,54 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
           onClose={() => setShowPairPositions(false)}
         />
       )}
-      {showResetManualShares && (
-        <ResetManualSharesModal
-          positions={affectedPositions.map((p) => ({
-            ticker: p.ticker,
-            shortName: p.shortName,
-            manualSharesOwned: p.manualSharesOwned,
-          }))}
+      {resetFlow?.step === "source" && (
+        <ResetSourceModal
+          options={resetSourceOptions}
+          onSelect={(key) =>
+            setResetFlow({
+              step: "confirm",
+              source: key === "manual" ? { type: "manual" } : { type: "broker", connectionId: key },
+            })
+          }
+          onClose={() => setResetFlow(null)}
+        />
+      )}
+      {resetFlow?.step === "confirm" && (
+        <ResetPositionsModal
+          title={confirmTitle}
+          positions={confirmPositions}
           onConfirm={() => {
             if (!file) return;
-            const tickers = new Set(affectedPositions.map((p) => p.ticker));
-            setFile({
-              ...file,
-              positions: file.positions.map((p) =>
-                tickers.has(p.ticker) ? { ...p, sharesOwned: 0 } : p
-              ),
-            });
-            setShowResetManualShares(false);
+            const source = resetFlow.source;
+            if (source.type === "manual") {
+              const tickers = new Set(affectedManual.map((p) => p.ticker));
+              setFile({
+                ...file,
+                positions: file.positions.map((p) =>
+                  tickers.has(p.ticker) ? { ...p, sharesOwned: 0 } : p
+                ),
+              });
+            } else {
+              const affected = affectedByConnection.get(source.connectionId) ?? [];
+              const tickers = new Set(affected.map((p) => p.ticker));
+              setFile({
+                ...file,
+                positions: file.positions.map((p) =>
+                  tickers.has(p.ticker)
+                    ? {
+                        ...p,
+                        brokerHoldings: (p.brokerHoldings ?? []).filter(
+                          (h) => h.connectionId !== source.connectionId
+                        ),
+                      }
+                    : p
+                ),
+              });
+            }
+            setResetFlow(null);
           }}
-          onClose={() => setShowResetManualShares(false)}
+          onBack={() => setResetFlow({ step: "source" })}
+          onClose={() => setResetFlow(null)}
         />
       )}
     </div>
