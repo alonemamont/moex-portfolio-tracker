@@ -7,3 +7,4 @@ playwright-report
 src-tauri/target
 *.local
 *.tsbuildinfo
+*.log
