@@ -167,7 +167,13 @@ export function BrokerConnectionsModal({
                   </p>
                 )}
                 {unlockingId === connection.id && (
-                  <div className="add-ticker__field">
+                  <form
+                    className="add-ticker__field"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void handleUnlockSubmit(connection);
+                    }}
+                  >
                     <input
                       type="password"
                       placeholder="Пароль-фраза"
@@ -175,11 +181,9 @@ export function BrokerConnectionsModal({
                       onChange={(e) => setPassphraseInput(e.target.value)}
                       autoFocus
                     />
-                    <button type="button" onClick={() => void handleUnlockSubmit(connection)}>
-                      Ок
-                    </button>
+                    <button type="submit">Ок</button>
                     {unlockError && <span className="add-ticker__status">{unlockError}</span>}
-                  </div>
+                  </form>
                 )}
               </div>
             );
