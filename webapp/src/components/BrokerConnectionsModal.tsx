@@ -11,6 +11,7 @@ import { AddBrokerConnectionForm } from "./AddBrokerConnectionForm";
 import { BrokerSyncPreviewModal } from "./BrokerSyncPreviewModal";
 import { isBrokerSyncAvailable, WINDOWS_RELEASE_URL } from "./brokerAvailability";
 import { logBrokerSyncError, logBrokerSyncInfo } from "../brokers/diagnostics";
+import { removeHoldingsForConnection } from "../domain/sharesBreakdown";
 
 const SOURCE = "broker-sync";
 
@@ -110,12 +111,7 @@ export function BrokerConnectionsModal({
     onUpdateFile({
       ...file,
       brokerConnections: file.brokerConnections.filter((c) => c.id !== connectionId),
-      positions: removeHoldings
-        ? file.positions.map((position) => ({
-            ...position,
-            brokerHoldings: (position.brokerHoldings ?? []).filter((holding) => holding.connectionId !== connectionId),
-          }))
-        : file.positions,
+      positions: removeHoldings ? removeHoldingsForConnection(file.positions, connectionId) : file.positions,
     });
     setRemovingConnection(null);
   }

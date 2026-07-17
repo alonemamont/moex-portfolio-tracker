@@ -20,6 +20,7 @@ import { ResetSourceModal } from "./ResetSourceModal";
 import { ResetPositionsModal } from "./ResetPositionsModal";
 import { PortfolioFile } from "../types";
 import { useIsMobile } from "../portfolio/useIsMobile";
+import { isOrphanedHolding } from "../domain/sharesBreakdown";
 
 const SOURCE = "update";
 
@@ -105,11 +106,18 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
     ])
   );
 
-  const activeConnectionIds = new Set((file?.brokerConnections ?? []).map((connection) => connection.id));
-  const affectedOrphaned = filteredPositions.filter((position) =>
-    (position.brokerHoldings ?? []).some(
-      (holding) => !activeConnectionIds.has(holding.connectionId) && holding.shares !== 0
-    )
+  const activeConnectionIds = useMemo(
+    () => new Set(brokerConnectionsById.keys()),
+    [brokerConnectionsById]
+  );
+  const affectedOrphaned = useMemo(
+    () =>
+      filteredPositions.filter((position) =>
+        (position.brokerHoldings ?? []).some(
+          (holding) => isOrphanedHolding(holding.connectionId, activeConnectionIds) && holding.shares !== 0
+        )
+      ),
+    [filteredPositions, activeConnectionIds]
   );
 
   const resetSourceOptions = [
@@ -129,34 +137,36 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
 
   const confirmSource = resetFlow?.step === "confirm" ? resetFlow.source : null;
 
-  const confirmTitle =
-    confirmSource === null
-      ? ""
-      : confirmSource.type === "manual"
-      ? "Обнулить вручную введённое количество"
-      : confirmSource.type === "orphaned"
-      ? "Обнулить holdings удалённых брокеров"
-      : `Обнулить холдинги брокера «${brokerConnectionsById.get(confirmSource.connectionId) ?? ""}»`;
-
-  const confirmPositions =
-    confirmSource === null
-      ? []
-      : confirmSource.type === "manual"
-      ? affectedManual.map((p) => ({ ticker: p.ticker, shortName: p.shortName, currentValue: p.manualSharesOwned }))
-      : confirmSource.type === "orphaned"
-      ? affectedOrphaned.map((p) => ({
-          ticker: p.ticker,
-          shortName: p.shortName,
-          currentValue: (p.brokerHoldings ?? [])
-            .filter((holding) => !activeConnectionIds.has(holding.connectionId))
-            .reduce((sum, holding) => sum + holding.shares, 0),
-        }))
-      : (affectedByConnection.get(confirmSource.connectionId) ?? []).map((p) => ({
-          ticker: p.ticker,
-          shortName: p.shortName,
-          currentValue:
-            (p.brokerHoldings ?? []).find((h) => h.connectionId === confirmSource.connectionId)?.shares ?? 0,
-        }));
+  let confirmTitle = "";
+  let confirmPositions: { ticker: string; shortName: string; currentValue: number }[] = [];
+  switch (confirmSource?.type) {
+    case "manual":
+      confirmTitle = "Обнулить вручную введённое количество";
+      confirmPositions = affectedManual.map((p) => ({
+        ticker: p.ticker,
+        shortName: p.shortName,
+        currentValue: p.manualSharesOwned,
+      }));
+      break;
+    case "orphaned":
+      confirmTitle = "Обнулить holdings удалённых брокеров";
+      confirmPositions = affectedOrphaned.map((p) => ({
+        ticker: p.ticker,
+        shortName: p.shortName,
+        currentValue: (p.brokerHoldings ?? [])
+          .filter((holding) => isOrphanedHolding(holding.connectionId, activeConnectionIds))
+          .reduce((sum, holding) => sum + holding.shares, 0),
+      }));
+      break;
+    case "broker":
+      confirmTitle = `Обнулить холдинги брокера «${brokerConnectionsById.get(confirmSource.connectionId) ?? ""}»`;
+      confirmPositions = (affectedByConnection.get(confirmSource.connectionId) ?? []).map((p) => ({
+        ticker: p.ticker,
+        shortName: p.shortName,
+        currentValue: (p.brokerHoldings ?? []).find((h) => h.connectionId === confirmSource.connectionId)?.shares ?? 0,
+      }));
+      break;
+  }
 
   if (!file) return null;
 
@@ -302,14 +312,19 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
                 ),
               });
             } else if (source.type === "orphaned") {
+              const tickers = new Set(affectedOrphaned.map((p) => p.ticker));
               setFile({
                 ...file,
-                positions: file.positions.map((position) => ({
-                  ...position,
-                  brokerHoldings: (position.brokerHoldings ?? []).filter((holding) =>
-                    activeConnectionIds.has(holding.connectionId)
-                  ),
-                })),
+                positions: file.positions.map((p) =>
+                  tickers.has(p.ticker)
+                    ? {
+                        ...p,
+                        brokerHoldings: (p.brokerHoldings ?? []).filter(
+                          (h) => !isOrphanedHolding(h.connectionId, activeConnectionIds)
+                        ),
+                      }
+                    : p
+                ),
               });
             } else {
               const affected = affectedByConnection.get(source.connectionId) ?? [];

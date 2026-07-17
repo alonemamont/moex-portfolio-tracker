@@ -1,4 +1,4 @@
-import { CalculatedPosition } from "../types";
+import { BrokerHolding, CalculatedPosition, Position } from "../types";
 
 export interface SharesBreakdownRow {
   label: string;
@@ -14,4 +14,20 @@ export function buildSharesBreakdownRows(
     shares: holding.shares,
   }));
   return [...brokerRows, { label: "Вручную", shares: position.manualSharesOwned }];
+}
+
+export function isOrphanedHolding(connectionId: string, activeConnectionIds: ReadonlySet<string>): boolean {
+  return !activeConnectionIds.has(connectionId);
+}
+
+export function removeHoldingsForConnection<T extends Pick<Position, "brokerHoldings">>(
+  positions: T[],
+  connectionId: string
+): T[] {
+  return positions.map((position) => ({
+    ...position,
+    brokerHoldings: (position.brokerHoldings ?? []).filter(
+      (holding: BrokerHolding) => holding.connectionId !== connectionId
+    ),
+  }));
 }
