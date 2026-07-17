@@ -472,6 +472,58 @@ input[type="checkbox"] {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+.shares-popover {
+  position: relative;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.shares-popover__trigger {
+  width: 13px;
+  height: 13px;
+  line-height: 13px;
+  text-align: center;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+  background: none;
+  padding: 0;
+  font-size: 9px;
+  font-weight: normal;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.shares-popover__panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 12px;
+  white-space: normal;
+  width: 220px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.shares-popover__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shares-popover__row--total {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+  font-weight: bold;
+}
+
 /* Status dot */
 
 .status-dot {

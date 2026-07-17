@@ -86,4 +86,28 @@ describe("PositionCard", () => {
     fireEvent.change(inputs[1], { target: { value: "12" } });
     expect(onChangeSharesOwned).toHaveBeenCalledWith("GAZP", 12);
   });
+
+  it("shows a shares breakdown popover trigger when broker holdings exist, and opens it on click", () => {
+    const positionWithHoldings: CalculatedPosition = {
+      ...position,
+      manualSharesOwned: 2,
+      sharesOwned: 12,
+      brokerHoldings: [{ connectionId: "conn-1", shares: 10, syncedAt: "2026-01-01" }],
+    };
+    render(
+      <PositionCard
+        position={positionWithHoldings}
+        brokerConnectionsById={new Map([["conn-1", "Т-Банк"]])}
+        onChangeCoefficient={vi.fn()}
+        onChangeSharesOwned={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getAllByRole("button")[0]);
+    const trigger = screen.getByRole("button", { name: "Σ12" });
+    fireEvent.click(trigger);
+
+    expect(screen.getByText("Т-Банк")).toBeInTheDocument();
+    expect(screen.getByText("Вручную")).toBeInTheDocument();
+  });
 });
