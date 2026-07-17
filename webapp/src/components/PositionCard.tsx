@@ -2,7 +2,8 @@ import { useState } from "react";
 import { CalculatedPosition } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { buildExpandedFields, formatNumber } from "./formatPosition";
-import { buildSharesBreakdownTooltip } from "../domain/sharesBreakdown";
+import { buildSharesBreakdownRows } from "../domain/sharesBreakdown";
+import { SharesBreakdownPopover } from "./SharesBreakdownPopover";
 
 export function PositionCard({
   position,
@@ -59,13 +60,10 @@ export function PositionCard({
                     onChange={(e) => onChangeSharesOwned(position.ticker, Number(e.target.value))}
                   />
                   {position.brokerHoldings && position.brokerHoldings.length > 0 && (
-                    <span
-                      className="th-hint"
-                      data-tooltip={buildSharesBreakdownTooltip(position, brokerConnectionsById)}
-                      tabIndex={0}
-                    >
-                      Σ{position.sharesOwned}
-                    </span>
+                    <SharesBreakdownPopover
+                      rows={buildSharesBreakdownRows(position, brokerConnectionsById)}
+                      total={position.sharesOwned}
+                    />
                   )}
                 </div>
               );
