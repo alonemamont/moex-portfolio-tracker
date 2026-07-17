@@ -1,12 +1,17 @@
 import { CalculatedPosition } from "../types";
 
-export function buildSharesBreakdownTooltip(
-  position: Pick<CalculatedPosition, "manualSharesOwned" | "brokerHoldings" | "sharesOwned">,
+export interface SharesBreakdownRow {
+  label: string;
+  shares: number;
+}
+
+export function buildSharesBreakdownRows(
+  position: Pick<CalculatedPosition, "manualSharesOwned" | "brokerHoldings">,
   labelByConnectionId: Map<string, string>
-): string {
-  const brokerParts = (position.brokerHoldings ?? []).map(
-    (holding) => `${labelByConnectionId.get(holding.connectionId) ?? holding.connectionId}: ${holding.shares}`
-  );
-  const manualPart = `Вручную: ${position.manualSharesOwned}`;
-  return [...brokerParts, manualPart].join(", ") + ` = ${position.sharesOwned}`;
+): SharesBreakdownRow[] {
+  const brokerRows = (position.brokerHoldings ?? []).map((holding) => ({
+    label: labelByConnectionId.get(holding.connectionId) ?? holding.connectionId,
+    shares: holding.shares,
+  }));
+  return [...brokerRows, { label: "Вручную", shares: position.manualSharesOwned }];
 }

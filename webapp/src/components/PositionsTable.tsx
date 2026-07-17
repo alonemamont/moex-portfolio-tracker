@@ -1,6 +1,7 @@
 import { CalculatedPosition, Pair } from "../types";
 import { ComplianceGauge } from "./ComplianceGauge";
-import { buildSharesBreakdownTooltip } from "../domain/sharesBreakdown";
+import { buildSharesBreakdownRows } from "../domain/sharesBreakdown";
+import { SharesBreakdownPopover } from "./SharesBreakdownPopover";
 import { formatNumber } from "./formatPosition";
 
 function formatMoney(value: number | null, digits = 2): string {
@@ -133,13 +134,10 @@ export function PositionsTable({
                   onChange={(e) => onChangeSharesOwned(p.ticker, Number(e.target.value))}
                 />
                 {p.brokerHoldings && p.brokerHoldings.length > 0 && (
-                  <span
-                    className="th-hint"
-                    data-tooltip={buildSharesBreakdownTooltip(p, brokerConnectionsById)}
-                    tabIndex={0}
-                  >
-                    Σ{p.sharesOwned}
-                  </span>
+                  <SharesBreakdownPopover
+                    rows={buildSharesBreakdownRows(p, brokerConnectionsById)}
+                    total={p.sharesOwned}
+                  />
                 )}
               </td>
               <td className="num">{formatMoneyTruncated(p.positionValue)}</td>
