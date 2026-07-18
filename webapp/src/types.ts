@@ -62,7 +62,7 @@ export interface HistorySnapshot {
 
 export interface Pair {
   tickers: string[];
-  coefficient: number;
+  coefficients: Record<string, number>;
 }
 
 export interface EncryptedToken {

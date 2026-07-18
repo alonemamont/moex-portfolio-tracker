@@ -35,10 +35,18 @@ const historySnapshotSchema = z.object({
   snapshot: z.array(historySnapshotRowSchema),
 });
 
-const pairSchema = z.object({
+const pairSchema = z.preprocess((raw) => {
+  if (raw !== null && typeof raw === "object" && "coefficient" in raw && !("coefficients" in raw)) {
+    const { coefficient, tickers, ...rest } = raw as { coefficient: unknown; tickers: unknown };
+    const tickerList = Array.isArray(tickers) ? tickers : [];
+    const coefficients = Object.fromEntries(tickerList.map((ticker) => [ticker, coefficient]));
+    return { ...rest, tickers, coefficients };
+  }
+  return raw;
+}, z.object({
   tickers: z.array(z.string()).min(2),
-  coefficient: z.number(),
-});
+  coefficients: z.record(z.string(), z.number()),
+}));
 
 const encryptedTokenSchema = z.object({
   ciphertext: z.string().min(1),

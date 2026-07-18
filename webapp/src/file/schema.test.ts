@@ -20,7 +20,7 @@ const valid = {
       snapshot: [{ ticker: "SBER", price: 300, weight: 5, status: "in_index" }],
     },
   ],
-  pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
+  pairs: [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 1, SBERP: 1 } }],
   brokerConnections: [
     {
       id: "conn-1",
@@ -187,13 +187,24 @@ describe("parsePortfolioFile", () => {
   });
 
   it("rejects a pair with fewer than 2 tickers", () => {
-    const bad = { ...valid, pairs: [{ tickers: ["SBER"], coefficient: 1 }] };
+    const bad = { ...valid, pairs: [{ tickers: ["SBER"], coefficients: { SBER: 1 } }] };
     expect(() => parsePortfolioFile(bad)).toThrow(PortfolioFileValidationError);
   });
 
   it("rejects a pair with a non-numeric coefficient", () => {
-    const bad = { ...valid, pairs: [{ tickers: ["SBER", "SBERP"], coefficient: "high" }] };
+    const bad = {
+      ...valid,
+      pairs: [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: "high", SBERP: 1 } }],
+    };
     expect(() => parsePortfolioFile(bad)).toThrow(PortfolioFileValidationError);
+  });
+
+  it("migrates an old single-coefficient pair into per-ticker coefficients", () => {
+    const oldShape = { ...valid, pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1.5 }] };
+    const result = parsePortfolioFile(oldShape);
+    expect(result.pairs).toEqual([
+      { tickers: ["SBER", "SBERP"], coefficients: { SBER: 1.5, SBERP: 1.5 } },
+    ]);
   });
 
   it("defaults position.brokerHoldings to [] when absent (old files without broker sync)", () => {
