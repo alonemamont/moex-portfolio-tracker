@@ -108,7 +108,7 @@ describe("computeCalculatedPositionsResult", () => {
         { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
         { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
       ],
-      pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
+      pairs: [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 1, SBERP: 1 } }],
     });
     const liveByTicker = new Map([
       ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
@@ -132,7 +132,7 @@ describe("computeCalculatedPositionsResult", () => {
         { ticker: "OLD2", coefficient: 1, sharesOwned: 5 },
         { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
       ],
-      pairs: [{ tickers: ["OLD1", "OLD2"], coefficient: 1 }],
+      pairs: [{ tickers: ["OLD1", "OLD2"], coefficients: { OLD1: 1, OLD2: 1 } }],
     });
     const liveByTicker = new Map([
       ["OLD1", live({ ticker: "OLD1", status: "out_of_index", indexWeight: 0, price: 250 })],
@@ -162,7 +162,7 @@ describe("computeCalculatedPositionsResult", () => {
         { ticker: "D", coefficient: 1, sharesOwned: 1 },
         { ticker: "E", coefficient: 1, sharesOwned: 1 },
       ],
-      pairs: [{ tickers: ["C", "E"], coefficient: 1 }],
+      pairs: [{ tickers: ["C", "E"], coefficients: { C: 1, E: 1 } }],
     });
     const liveByTicker = new Map(
       ["A", "B", "C", "D", "E"].map((ticker) => [ticker, live({ ticker, price: 10 })])

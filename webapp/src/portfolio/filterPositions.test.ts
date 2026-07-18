@@ -88,7 +88,7 @@ describe("filterPositions", () => {
       makePosition({ ticker: "SBERP", status: "in_index", sharesOwned: 0 }),
       makePosition({ ticker: "GAZP", status: "in_index", sharesOwned: 0 }),
     ];
-    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficient: 1 }];
+    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficients: {} }];
 
     // hideEmpty=true: SBER passes on its own (sharesOwned=10), SBERP would not,
     // but SBERP must be pulled in because it shares a pair with SBER.
@@ -102,7 +102,7 @@ describe("filterPositions", () => {
       makePosition({ ticker: "SBERP", status: "in_index", sharesOwned: 0 }),
       makePosition({ ticker: "GAZP", status: "in_index", sharesOwned: 10 }),
     ];
-    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficient: 1 }];
+    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficients: {} }];
 
     const result = filterPositions(mixed, pairs, "", true, false);
     expect(result.map((p) => p.ticker)).toEqual(["GAZP"]);
@@ -115,7 +115,7 @@ describe("filterPositions", () => {
       makePosition({ ticker: "E", sharesOwned: 1 }),
       makePosition({ ticker: "D", sharesOwned: 1 }),
     ];
-    const pairs: Pair[] = [{ tickers: ["C", "E"], coefficient: 1 }];
+    const pairs: Pair[] = [{ tickers: ["C", "E"], coefficients: {} }];
 
     const result = filterPositions(mixed, pairs, "", false, false);
     expect(result.map((p) => p.ticker)).toEqual(["A", "C", "E", "D"]);

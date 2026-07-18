@@ -40,7 +40,7 @@ describe("buildCalculatedPositions perf", () => {
   bench(`computes ${POSITION_COUNT} positions with 100 paired tickers`, () => {
     const pairs = Array.from({ length: 50 }, (_, i) => ({
       tickers: [`TICK${i * 2}`, `TICK${i * 2 + 1}`],
-      coefficient: 1,
+      coefficients: { [`TICK${i * 2}`]: 1, [`TICK${i * 2 + 1}`]: 1 },
     }));
     buildCalculatedPositions(positions, liveByTicker, resolveSector, pairs);
   });

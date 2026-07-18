@@ -36,13 +36,19 @@ export function PairPositionsModal({
     setDraftPairs((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleChangeCoefficient(index: number, value: number) {
-    setDraftPairs((prev) => prev.map((p, i) => (i === index ? { ...p, coefficient: value } : p)));
+  function handleChangeCoefficient(index: number, ticker: string, value: number) {
+    setDraftPairs((prev) =>
+      prev.map((p, i) =>
+        i === index ? { ...p, coefficients: { ...p.coefficients, [ticker]: value } } : p
+      )
+    );
   }
 
   function handleAddPair() {
     if (!canAddPair) return;
-    setDraftPairs((prev) => [...prev, { tickers: [...selectedTickers], coefficient: newCoefficient }]);
+    const tickers = [...selectedTickers];
+    const coefficients = Object.fromEntries(tickers.map((ticker) => [ticker, newCoefficient]));
+    setDraftPairs((prev) => [...prev, { tickers, coefficients }]);
     setSelectedTickers(new Set());
     setNewCoefficientInput("1");
   }
@@ -63,14 +69,18 @@ export function PairPositionsModal({
           <tbody>
             {draftPairs.map((pair, index) => (
               <tr key={pair.tickers.join("+")}>
-                <td>{pair.tickers.join(" + ")}</td>
                 <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={pair.coefficient}
-                    onChange={(e) => handleChangeCoefficient(index, Number(e.target.value))}
-                  />
+                  {pair.tickers.map((ticker) => (
+                    <label key={ticker} className="pair-coefficient-field">
+                      {ticker}
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={pair.coefficients[ticker]}
+                        onChange={(e) => handleChangeCoefficient(index, ticker, Number(e.target.value))}
+                      />
+                    </label>
+                  ))}
                 </td>
                 <td>
                   <button type="button" onClick={() => handleRemovePair(index)}>
