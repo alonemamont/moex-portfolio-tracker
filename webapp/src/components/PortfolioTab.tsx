@@ -141,7 +141,11 @@ export function PortfolioTab({ autoUpdateSignal }: { autoUpdateSignal: number })
       if (pairIndex !== -1) {
         setFile({
           ...file,
-          pairs: file.pairs.map((pair, i) => (i === pairIndex ? { ...pair, coefficient: value } : pair)),
+          pairs: file.pairs.map((pair, i) =>
+            i === pairIndex
+              ? { ...pair, coefficients: { ...pair.coefficients, [ticker]: value } }
+              : pair
+          ),
         });
         return;
       }

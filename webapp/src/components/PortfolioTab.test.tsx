@@ -87,6 +87,29 @@ describe("PortfolioTab mobile switch", () => {
   });
 });
 
+describe("PortfolioTab pair coefficients", () => {
+  it("updates only the changed ticker's coefficient within a pair, leaving the other member's coefficient untouched", () => {
+    vi.mocked(useIsMobile).mockReturnValue(false);
+    const pairedFile: PortfolioFile = {
+      ...sampleFile,
+      positions: [
+        { ticker: "SBER", coefficient: 1, sharesOwned: 3 },
+        { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
+      ],
+      pairs: [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 1.15, SBERP: 1.1 } }],
+    };
+    renderPortfolioTab(pairedFile);
+
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    expect(inputs.map((i) => i.value)).toEqual(["1.15", "1.1"]);
+
+    fireEvent.change(inputs[0], { target: { value: "1.3" } });
+
+    const updatedInputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    expect(updatedInputs.map((i) => i.value)).toEqual(["1.3", "1.1"]);
+  });
+});
+
 describe("PortfolioTab reset positions", () => {
   it("disables the reset button when no visible position is affected by any source", () => {
     vi.mocked(useIsMobile).mockReturnValue(false);
