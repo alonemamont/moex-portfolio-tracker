@@ -101,7 +101,7 @@ export function computeBuyAmountRub(sharesToBuy: number | null, price: number | 
 
 export interface PairInput {
   tickers: string[];
-  coefficient: number;
+  coefficients: Record<string, number>;
 }
 
 export interface PairMemberInput {
@@ -118,37 +118,20 @@ export interface PairedTargets {
   compliance: number | null;
 }
 
-export function computeCombinedIndexWeight(
-  members: { indexWeight: number; status: IndexStatus }[]
-): number {
-  return members.reduce((sum, m) => sum + (m.status === "in_index" ? m.indexWeight : 0), 0);
-}
-
 export function computePairedTargets(
   pair: PairInput,
   positions: PairMemberInput[],
   portfolioValue: number
 ): PairedTargets {
   const members = positions.filter((p) => pair.tickers.includes(p.ticker));
-  const combinedIndexWeight = computeCombinedIndexWeight(members);
-  const targetAllocation = combinedIndexWeight * pair.coefficient;
+  const targetAllocation = members.reduce(
+    (sum, m) => sum + (m.status === "in_index" ? m.indexWeight * pair.coefficients[m.ticker] : 0),
+    0
+  );
   const combinedActualValueRub = members.reduce((sum, p) => sum + (p.price ?? 0) * p.sharesOwned, 0);
   const actualShare = computeActualShare(combinedActualValueRub, portfolioValue);
   const compliance = computeCompliance(actualShare, targetAllocation);
   return { targetAllocation, actualShare, compliance };
-}
-
-export function computePairMemberTargetShares(
-  combinedTargetPct: number,
-  combinedIndexWeight: number,
-  memberIndexWeight: number,
-  portfolioValue: number,
-  price: number | null
-): number | null {
-  if (combinedIndexWeight === 0 || price === null || price === 0) return null;
-  const combinedTargetRub = (combinedTargetPct / 100) * portfolioValue;
-  const targetValueRub = combinedTargetRub * (memberIndexWeight / combinedIndexWeight);
-  return Math.round(targetValueRub / price);
 }
 
 export function computeTotalSharesOwned(position: Pick<Position, "sharesOwned" | "brokerHoldings">): number {
