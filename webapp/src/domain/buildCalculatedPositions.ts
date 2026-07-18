@@ -9,9 +9,7 @@ import {
   computeTargetShares,
   computeSharesToBuy,
   computeBuyAmountRub,
-  computeCombinedIndexWeight,
   computePairedTargets,
-  computePairMemberTargetShares,
   computeTotalSharesOwned,
   sumPositionValues,
   PairedTargets,
@@ -72,21 +70,13 @@ export function buildCalculatedPositions(
 
     if (pair) {
       const pairedTargets = pairedTargetsByPair.get(pair)!;
-      coefficient = pair.coefficient;
+      coefficient = pair.coefficients[position.ticker];
       targetAllocation = pairedTargets.targetAllocation;
       actualShare = pairedTargets.actualShare;
       compliance = pairedTargets.compliance;
 
-      const combinedIndexWeight = computeCombinedIndexWeight(
-        memberInputs.filter((m) => pair.tickers.includes(m.ticker))
-      );
-      const targetShares = computePairMemberTargetShares(
-        targetAllocation,
-        combinedIndexWeight,
-        live.indexWeight,
-        portfolioValue,
-        live.price
-      );
+      const individualTargetAllocation = computeTargetAllocation(live.indexWeight, coefficient, live.status);
+      const targetShares = computeTargetShares(individualTargetAllocation, portfolioValue, live.price);
       sharesToBuy = computeSharesToBuy(targetShares, totalShares);
       buyAmountRub = computeBuyAmountRub(sharesToBuy, live.price);
     } else {

@@ -122,9 +122,9 @@ describe("buildCalculatedPositions", () => {
       ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
       ["SBERP", live({ ticker: "SBERP", indexWeight: 3, price: 200 })],
     ]);
-    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficient: 2 }];
+    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 2, SBERP: 2 } }];
     // portfolioValue = 10*250 + 5*200 = 3500
-    // combinedIndexWeight = 9+3 = 12, targetAllocation = 12*2 = 24
+    // targetAllocation = 9*2 + 3*2 = 24
     // combinedActualValueRub = 3500, actualShare = 100, compliance = 100/24
 
     const result = buildCalculatedPositions(positions, liveByTicker, () => "Финансы", pairs);
@@ -141,7 +141,7 @@ describe("buildCalculatedPositions", () => {
     expect(sberp.coefficient).toBe(2);
   });
 
-  it("splits sharesToBuy/buyAmountRub across pair members proportionally to their own share of the combined index weight", () => {
+  it("computes each pair member's target shares from its own weight times its own coefficient, independent of the other member", () => {
     const positions: Position[] = [
       { ticker: "SBER", coefficient: 3, sharesOwned: 10 },
       { ticker: "SBERP", coefficient: 7, sharesOwned: 5 },
@@ -150,17 +150,41 @@ describe("buildCalculatedPositions", () => {
       ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
       ["SBERP", live({ ticker: "SBERP", indexWeight: 3, price: 200 })],
     ]);
-    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficient: 1 }];
+    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 1, SBERP: 1 } }];
     // portfolioValue = 10*250 + 5*200 = 3500
-    // combinedIndexWeight = 12, targetAllocation = 12, combinedTargetRub = 12/100*3500 = 420
-    // SBER: targetValueRub = 420*9/12 = 315, targetShares = round(315/250) = 1, sharesToBuy = 1-10 = -9, buyAmountRub = -2250
-    // SBERP: targetValueRub = 420*3/12 = 105, targetShares = round(105/200) = 1, sharesToBuy = 1-5 = -4, buyAmountRub = -800
+    // SBER: individualTargetAllocation = 9*1 = 9, targetValueRub = 9/100*3500 = 315, targetShares = round(315/250) = 1, sharesToBuy = 1-10 = -9, buyAmountRub = -2250
+    // SBERP: individualTargetAllocation = 3*1 = 3, targetValueRub = 3/100*3500 = 105, targetShares = round(105/200) = 1, sharesToBuy = 1-5 = -4, buyAmountRub = -800
 
     const result = buildCalculatedPositions(positions, liveByTicker, () => "Финансы", pairs);
 
     const sber = result.find((p) => p.ticker === "SBER")!;
     expect(sber.sharesToBuy).toBe(-9);
     expect(sber.buyAmountRub).toBe(-2250);
+
+    const sberp = result.find((p) => p.ticker === "SBERP")!;
+    expect(sberp.sharesToBuy).toBe(-4);
+    expect(sberp.buyAmountRub).toBe(-800);
+  });
+
+  it("gives pair members independent target shares when their coefficients differ, without one affecting the other", () => {
+    const positions: Position[] = [
+      { ticker: "SBER", coefficient: 1, sharesOwned: 10 },
+      { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
+    ];
+    const liveByTicker = new Map([
+      ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
+      ["SBERP", live({ ticker: "SBERP", indexWeight: 3, price: 200 })],
+    ]);
+    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 2, SBERP: 1 } }];
+    // portfolioValue = 10*250 + 5*200 = 3500
+    // SBER: individualTargetAllocation = 9*2 = 18, targetValueRub = 18/100*3500 = 630, targetShares = round(630/250) = 3, sharesToBuy = 3-10 = -7, buyAmountRub = -1750
+    // SBERP: individualTargetAllocation = 3*1 = 3, targetValueRub = 3/100*3500 = 105, targetShares = round(105/200) = 1, sharesToBuy = 1-5 = -4, buyAmountRub = -800 (unchanged from the uniform-coefficient case above)
+
+    const result = buildCalculatedPositions(positions, liveByTicker, () => "Финансы", pairs);
+
+    const sber = result.find((p) => p.ticker === "SBER")!;
+    expect(sber.sharesToBuy).toBe(-7);
+    expect(sber.buyAmountRub).toBe(-1750);
 
     const sberp = result.find((p) => p.ticker === "SBERP")!;
     expect(sberp.sharesToBuy).toBe(-4);
@@ -176,7 +200,7 @@ describe("buildCalculatedPositions", () => {
       ["OLD1", live({ ticker: "OLD1", status: "out_of_index", indexWeight: 0, price: 50 })],
       ["OLD2", live({ ticker: "OLD2", status: "out_of_index", indexWeight: 0, price: 30 })],
     ]);
-    const pairs: Pair[] = [{ tickers: ["OLD1", "OLD2"], coefficient: 1 }];
+    const pairs: Pair[] = [{ tickers: ["OLD1", "OLD2"], coefficients: { OLD1: 1, OLD2: 1 } }];
 
     const [old1] = buildCalculatedPositions(positions, liveByTicker, () => "Другое", pairs);
 
@@ -196,7 +220,7 @@ describe("buildCalculatedPositions", () => {
       ["SBERP", live({ ticker: "SBERP", indexWeight: 3, price: 200 })],
       ["GAZP", live({ ticker: "GAZP", indexWeight: 5, price: 100 })],
     ]);
-    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficient: 1 }];
+    const pairs: Pair[] = [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 1, SBERP: 1 } }];
 
     const result = buildCalculatedPositions(positions, liveByTicker, () => "Финансы", pairs);
 
