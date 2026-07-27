@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { mockIssRoutes } from "./fixtures/iss";
 
 test("browser build blocks T-Bank sync and keeps Finam available", async ({ page }) => {
+  await mockIssRoutes(page);
   await page.goto("/");
 
   await page.getByRole("button", { name: "Начать с пустого портфеля" }).click();
