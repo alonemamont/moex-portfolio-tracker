@@ -1,6 +1,7 @@
-# Календарь дивидендов (ближайшие отсечки)
+# Календарь дивидендов (сегодня и будущие отсечки)
 
-Дата: 2026-07-27
+Дата: 2026-07-27  
+Обновлено: 2026-07-27 (review fixes §1–12)
 
 > Вторая фича backlog после режимов ребаланса. Локальный файл / без
 > backend. Платформы: **web + desktop (Tauri)**. Отдельный mobile layout
@@ -10,138 +11,234 @@
 
 ## 1. Цель
 
-Вкладка «Дивиденды»: календарь **будущих** дат отсечки
-(`registryclosedate` из MOEX ISS) по позициям с ненулевым количеством
-акций, с максимумом полезных полей (₽/акция, ожидаемый доход, yield).
+Вкладка «Дивиденды»: календарь отсечек **на сегодня и в будущем**
+(`registryclosedate` из MOEX ISS, фильтр `>= today`) по позициям с
+ненулевым количеством акций, с максимумом полезных полей (₽/акция,
+ориентировочный ожидаемый доход, доходность события к текущей цене).
 
 ## 2. Скоуп
 
 **В скоупе v1**
 
 - Новая вкладка «Дивиденды».
-- Кнопка **Обновить дивиденды** только на этой вкладке (не смешивать с
-  рыночным Update).
-- При открытии вкладки — показать данные из текущего `PortfolioFile` в
-  памяти (последнее сохранённое / уже обновлённое в сессии).
-- Успешный Update → сразу UI + `setFile` (файл dirty); запись на диск —
-  только через общую кнопку **Сохранить** портфеля.
-- Тикеры: calculated positions с `sharesOwned > 0` (total, включая
-  broker holdings).
-- Строка события: тикер, дата отсечки, ₽/акция, акций, ожидаемый доход
-  ₽, yield % (если цена есть).
-- Empty без данных в file: «Нажмите Обновить».
-- Empty после Update без future-дат: «Ближайших отсечек в ISS нет».
-- Хранение полной ленты ISS по выбранным тикерам в файле; UI фильтрует
-  `registryCloseDate >= today` (локальная календарная дата).
+- Кнопка **Обновить дивиденды** только на этой вкладке.
+- Открытие вкладки → данные из текущего `PortfolioFile` в памяти.
+- Успешный Update (не полный fail) → UI + functional `setFile`; на диск —
+  только общая **Сохранить**.
+- Тикеры запроса: calculated с `sharesOwned > 0` (total, включая broker).
+- Колонки: тикер, отсечка, ₽/акция, акций, ожид. доход ₽, доходность
+  события %.
+- Empty-state по §7 (формальные правила).
+- В файле хранится лента событий по owned-тикерам; UI фильтрует
+  `registryCloseDate >= today` (локальная календарная дата пользователя).
 - `fetchLatestDividend` для рынка **не ломать**; history — отдельный API.
 
 **Вне скоупа v1**
 
 - Прошлые выплаты / переключатель «Недавние».
-- Агрегат дивдоходности портфеля как отдельная аналитика (сумма
-  ожидаемого дохода по видимым строкам — ок в footer вкладки).
+- Годовая дивдоходность портфеля как отдельная аналитика.
 - Автоfetch при открытии вкладки.
-- Дата выплаты на счёт (ISS обычно даёт только отсечку).
-- Миграция/поддержка старых portfolio.json без новых полей как
-  отдельный product requirement (defaults достаточно).
+- Дата выплаты на счёт.
+- Миграция legacy portfolio.json как product requirement.
 
 ## 3. Инварианты
 
 1. Рыночный Update **не** перезаписывает `dividendEvents` /
    `dividendsFetchedAt`.
-2. Update дивидендов при полном сетевом fail **не** трогает `file`.
-3. Save портфеля — единственная запись на диск; одна кнопка на всё.
-4. Календарь UI — только future относительно локального «сегодня».
-5. Доход и yield **не** персистятся — считают на лету из shares + price.
-6. Read path: нет аккаунта / своего backend.
+2. Полный fail дивидендного Update **не** трогает `file` (см. §5).
+3. Save портфеля — единственная запись на диск.
+4. UI-календарь: `registryCloseDate >= today` (сегодня **включается**).
+5. Доход и доходность события **не** персистятся.
+6. Нет аккаунта / своего backend.
+7. Тикеры нормализуются `trim().toUpperCase()` везде (fetch URL key,
+   storage, join) — как в `buildCalculatedPositions` / tickerValidation.
+8. Dividend fetch имеет **свой** `isDividendsUpdating`; может идти
+   **параллельно** с рыночным `isUpdating`. Кнопка «Обновить дивиденды»
+   disabled только от `isDividendsUpdating`. Рыночные кнопки не
+   блокируются дивидендным fetch и наоборот.
 
 ## 4. Модель данных
 
 ```ts
 interface DividendEvent {
-  ticker: string;
-  registryCloseDate: string; // YYYY-MM-DD, ISS registryclosedate
-  valuePerShare: number;
+  ticker: string; // always UPPERCASE trimmed
+  registryCloseDate: string; // YYYY-MM-DD, validated calendar date
+  valuePerShare: number; // finite, > 0
 }
 
 interface PortfolioFile {
   version: 1;
-  // ...existing fields...
+  // ...existing...
   dividendEvents: DividendEvent[];
-  dividendsFetchedAt: string | null; // ISO, последний успешный Update на вкладке
+  dividendsFetchedAt: string | null; // ISO; null = ещё никогда успешно не обновляли
 }
 ```
 
-- `createEmptyPortfolio`: `dividendEvents: []`, `dividendsFetchedAt: null`.
-- Schema: zod с `.default([])` / `.default(null)` для удобства.
-- Успешный Update **заменяет** весь `dividendEvents` свежим снимком по
-  текущим тикерам с shares > 0 (не merge) — нет stale после продажи.
-- События в файле сортировать: дата asc, затем тикер.
+- `createEmptyPortfolio`: `[]` / `null`.
+- Schema: zod `.default([])` / `.default(null)`.
+- События в файле: сорт дата asc, тикер asc.
 
-## 5. ISS и оркестрация Update
+### 4.1 Политика снимка при Update (partial fail)
 
-**Клиент**
+**Не** «всегда заменить всё слепым полным snapshot».
 
-- `fetchDividendHistory(ticker)` → все строки
-  `{ registryCloseDate, valuePerShare }` из
-  `/securities/{ticker}/dividends.xml` (тот же endpoint, что latest).
-- `fetchDividendHistoriesForTickers(tickers, concurrency = 5)` — pLimit
-  как у latest; ошибка одного тикера → пустой список для него (не
-  валить весь batch); опционально собрать список failed tickers для
-  warning.
+После fetch строится новый `dividendEvents` так:
 
-**Оркестрация на вкладке**
+1. `ownedNow` = тикеры с `sharesOwned > 0` на момент **apply**
+   (functional `setFile`, актуальный `current`).
+2. Для каждого `t ∈ ownedNow`:
+   - если `t ∈ succeededTickers` → взять **новые** распарсенные события `t`;
+   - иначе → **сохранить** прежние события `t` из `current.dividendEvents`
+     (failed или не запрашивался из‑за гонки).
+3. События тикеров ∉ `ownedNow` **удалить** (проданы / обнулены).
+4. `dividendsFetchedAt = nowISO` только если `succeededTickers.length > 0`
+   (был хотя бы один успешный тикер).
 
-1. Тикеры = unique tickers из calculated с `sharesOwned > 0`.
-2. Если список пуст → не ходить в сеть; empty «Нет позиций с акциями»
-   (или эквивалент).
-3. Fetch histories.
-4. Полный fail транспорта/ISS → ErrorPanel; `file` не менять.
-5. Успех (в т.ч. частичный по тикерам) →
-   `setFile({ ...file, dividendEvents, dividendsFetchedAt: nowISO })`.
-6. При частичных fail тикеров — показать данные + warning в ErrorPanel.
+Итог: упавший тикер не теряет сохранённую историю; проданный — вычищается;
+успешный — полностью заменяется свежей лентой.
 
-## 6. View model календаря
+## 5. ISS клиент и оркестрация
 
-Чистый `domain/dividendCalendar.ts`:
+### 5.1 Endpoint / пагинация
+
+- URL: `GET {ISS_BASE}/securities/{encodeURIComponent(ticker)}/dividends.xml`
+  (ticker уже UPPERCASE).
+- **Один запрос на тикер.** Берём **все** `<row>` из блока
+  `data id="dividends"`. Пагинация `start`/`limit` **не** используется:
+  текущий контракт ISS для dividends отдаёт ленту одним блоком (как
+  существующий `fetchLatestDividend`). Если блок пуст — валидный пустой
+  результат для тикера, не ошибка.
+- Известное ограничение v1: если ISS когда‑либо начнёт резать ответ без
+  явной пагинации в клиенте — полнота не гарантирована; отдельный
+  follow-up, не скрывать в «магическом merge».
+
+### 5.2 Parse / filter / dedupe одной истории тикера
+
+Из каждого row:
+
+| Поле | Правило |
+|---|---|
+| `registryclosedate` | trim; должен матчить `^\d{4}-\d{2}-\d{2}$` **и** быть реальной календарной датой (reject `2024-02-31` и т.п.) |
+| `value` | `Number(value)`; принять только `Number.isFinite(n) && n > 0` |
+
+Строки, не прошедшие правила — **отбросить** (не ошибка тикера).
+
+Dedupe: ключ `${registryCloseDate}|${valuePerShare}`; при дублях оставить
+одну запись. Сорт даты asc.
+
+Пустой список после фильтра — успех тикера с `[]`.
+
+### 5.3 Batch API (обязательный контракт)
+
+```ts
+interface DividendHistoryBatchResult {
+  eventsByTicker: Map<string, DividendEvent[]>; // keys UPPERCASE; only succeeded
+  failedTickers: string[];
+  succeededTickers: string[];
+}
+
+fetchDividendHistoriesForTickers(tickers: string[], concurrency?: number)
+  : Promise<DividendHistoryBatchResult>
+```
+
+- На тикер: сеть/HTTP/parse throw → тикер в `failedTickers`, **не** в
+  `eventsByTicker`.
+- Успех (в т.ч. пустой `[]`) → `succeededTickers` + запись в map.
+- **Полный fail batch** = `succeededTickers.length === 0`
+  (все тикеры упали **или** входной список был пуст после нормализации —
+  пустой вход оркестратор не должен слать; см. ниже).
+- Транспортный abort всего Promise — оркестратор трактует как полный fail
+  (file не трогать).
+
+`fetchDividendHistory(ticker)` может остаться низкоуровневым хелпером;
+batch — единственный контракт для UI.
+
+### 5.4 Оркестрация вкладки
+
+1. Если нет позиций с `sharesOwned > 0` → **не** ходить в сеть; empty
+   «Нет позиций с акциями».
+2. `requestedTickers` = unique normalized tickers.
+3. `setIsDividendsUpdating(true)`; clear dividend error source.
+4. Await batch.
+5. Если `succeededTickers.length === 0` → ErrorPanel («Не удалось
+   обновить дивиденды»); **file не менять**; stop.
+6. Иначе functional update:
+
+```ts
+setFile((current) => {
+  if (!current) return current;
+  const ownedNow = /* shares>0 from current + live, normalized */;
+  const nextEvents = mergeDividendSnapshot({
+    previous: current.dividendEvents,
+    ownedNow,
+    eventsByTicker: result.eventsByTicker,
+    succeededTickers: result.succeededTickers,
+  });
+  return {
+    ...current,
+    dividendEvents: nextEvents,
+    dividendsFetchedAt: new Date().toISOString(),
+  };
+});
+```
+
+7. Если `failedTickers.length > 0` → warning в ErrorPanel со списком
+   тикеров (данные успешных уже применены).
+8. `setIsDividendsUpdating(false)` в `finally`.
+
+**Гонка набора тикеров:** apply всегда относительно `ownedNow` на шаге
+setFile (п.4.1). Результаты fetch по тикерам, которых уже нет в
+`ownedNow`, отбрасываются. Тикеры, появившиеся во время fetch и не
+входившие в `requestedTickers`, сохраняют старые events (обычно `[]`)
+до следующего Update.
+
+## 6. View model
+
+`domain/dividendCalendar.ts`:
 
 ```ts
 buildUpcomingDividendRows(input: {
   events: DividendEvent[];
   positions: { ticker: string; sharesOwned: number; price: number | null }[];
-  today: string; // YYYY-MM-DD local
+  today: string; // local YYYY-MM-DD
 }): UpcomingDividendRow[]
 ```
 
-- Фильтр: `registryCloseDate >= today`.
-- Join shares/price по тикеру.
+- Join по `ticker.toUpperCase()`.
+- Фильтр: `registryCloseDate >= today` (**сегодня включается**).
+- Показывать только строки, у которых после join `sharesOwned > 0`.
 - `expectedIncome = valuePerShare * sharesOwned`.
-- `yieldPct = price ? (valuePerShare / price) * 100 : null`.
+- `eventYieldPct`:
+  `price !== null && Number.isFinite(price) && price > 0`
+  ? `(valuePerShare / price) * 100`
+  : `null`.
 - Сорт: дата asc, тикер asc.
-- Агрегат footer: `sum(expectedIncome)` по видимым строкам.
+- Footer: `sum(expectedIncome)`.
 
-## 7. UI
+Подпись колонки: **«К цене %»** или **«Дох. события %»** — не «годовая
+дивдоходность». В UI hint/disclaimer (постоянный, под таблицей или в
+шапке):
 
-Вкладка в `App.tsx` рядом с существующими.
+> Ожидаемый доход ориентировочный: считается по **текущему** числу акций.
+> Право на дивиденд зависит от владения на дату отсечки; налоги и факт
+> выплаты не учитываются.
 
-**Шапка**
+## 7. UI / empty-state (формально)
 
-- Кнопка «Обновить дивиденды» (disabled пока идёт fetch).
-- «Обновлено: {dividendsFetchedAt formatted | —}».
-- Подпись: данные сохраняются общей кнопкой «Сохранить».
+Приоритет empty (первый подходящий):
 
-**Таблица**
+1. **Нет позиций с shares > 0** → «Нет позиций с акциями» (кнопка Update
+   disabled или no-op с тем же текстом).
+2. **`dividendsFetchedAt === null`** → «Нажмите Обновить»
+   (ещё никогда не было успешного дивидендного Update).
+3. **`dividendsFetchedAt !== null`** и upcoming rows пусты →
+   «Ближайших отсечек в ISS нет» (успешный fetch был; на сегодня/будущее
+   нечего показать — в т.ч. после reload).
 
-| Тикер | Отсечка | ₽/акция | Акций | Ожид. доход ₽ | Yield % |
+Шапка: кнопка «Обновить дивиденды» (`disabled={isDividendsUpdating}`);
+«Обновлено: … | —»; напоминание про общую Сохранить; disclaimer §6.
 
-**Итог:** сумма ожидаемого дохода.
-
-**Empty**
-
-- `dividendEvents.length === 0` (и не после только что пустого
-  успешного fetch с данными) → «Нажмите Обновить».
-- Есть events, upcoming пуст → «Ближайших отсечек в ISS нет».
-- Нет позиций с shares > 0 → отдельное пустое состояние без fetch.
+Таблица: Тикер | Отсечка | ₽/акция | Акций | Ожид. доход ₽ | Дох. события %.
 
 Web + desktop, один layout.
 
@@ -149,33 +246,63 @@ Web + desktop, один layout.
 
 | Файл | Роль |
 |---|---|
-| `iss/client.ts` (+ tests) | history fetch |
-| `domain/dividendCalendar.ts` (+ tests) | filter + enrich |
-| `components/DividendsTab.tsx` (+ tests) | UI + update orchestration |
+| `iss/client.ts` (+ tests) | history + batch result contract |
+| `domain/dividendCalendar.ts` (+ tests) | parse helpers if pure, filter, enrich, merge snapshot |
+| `domain/mergeDividendSnapshot.ts` (или в calendar) | §4.1 merge |
+| `components/DividendsTab.tsx` (+ tests) | UI + orchestration + `isDividendsUpdating` |
 | `types.ts`, `file/schema.ts`, `createEmptyPortfolio.ts` | модель |
-| `App.tsx`, `styles.css` | вкладка + стили |
+| `App.tsx`, `styles.css` | вкладка |
 
-## 9. Тесты
+`isDividendsUpdating` — local state вкладки **или** поле в portfolio
+context, **отдельно** от `isUpdating`. Не переиспользовать market flag.
 
-- Parse history rows; latest-compatible endpoint.
-- `buildUpcomingDividendRows`: future filter, income, null yield, sort.
-- Schema defaults / empty portfolio includes new fields.
-- Tab: empty copy; successful update path mocks ISS и проверяет
-  `setFile` payload; network fail → `setFile` not called with new events.
+## 9. Тесты (обязательные ветки)
+
+**ISS / parse**
+
+- Валидные rows; drop bad date / non-finite / ≤0 value; reject
+  non-calendar YYYY-MM-DD; dedupe; empty block → `[]` success.
+- Batch: mixed success/fail → корректные `succeeded`/`failed` maps.
+- Полный fail (`succeeded.length === 0`) и HTTP 500 на всех.
+- URL encoding / uppercase ticker.
+- Один запрос без `start`/`limit` query (контракт пагинации).
+
+**Merge / orchestration**
+
+- Partial fail **сохраняет** старые events упавшего тикера.
+- Succeeded тикер **заменяет** свою ленту.
+- Тикер с shares→0 на apply **удаляется** из events.
+- Functional `setFile`: изменения `positions`/`transactions` во время
+  fetch не затираются (mock sequential updates).
+- Полный fail → `setFile` не вызывается / dividends fields unchanged.
+- `sharesOwned` включает broker holdings при выборе тикеров.
+
+**Calendar UI model**
+
+- `today` boundary: дата `== today` **входит**; `today-1` нет.
+- Null/zero/negative price → `eventYieldPct === null`.
+- Empty-state inputs: `fetchedAt null` vs fetched+no upcoming vs no
+  positions (тесты приоритета копий или pure helpers).
+
+**Tab**
+
+- Успешный path; partial warning; полный fail; нулевые позиции без сети.
 
 ## 10. Acceptance
 
-1. Открыл вкладку без events → «Нажмите Обновить».
-2. Update успех → future-строки или «Ближайших отсечек в ISS нет»;
-   `dividendsFetchedAt` в памяти.
-3. Reload без Save → состояние из файла (пусто/старое).
-4. Save → events в JSON; reopen → те же.
-5. Только shares > 0; колонки max; рыночный Update не трогает
-   `dividendEvents`.
-6. Одинаково в браузере и Tauri desktop.
+1. Первый визит (`dividendsFetchedAt === null`) → «Нажмите Обновить».
+2. Update: полный fail → file дивидендов не меняется; partial → успешные
+   обновлены, failed сохранили старое + warning.
+3. После успешного Update без дат ≥ today → «Ближайших отсечек в ISS нет»;
+   то же после Save/reload.
+4. Reload без Save → состояние из файла.
+5. Save → events в JSON; reopen → те же.
+6. Только shares > 0; disclaimer виден; рыночный Update не трогает
+   dividend fields; dividend fetch не блокирует market Update.
+7. Web + desktop.
 
 ## 11. Backlog (не этот spec)
 
-- Агрегат дивдоходности портфеля / календарь прошлых.
+- Пагинация dividends, если ISS начнёт резать ответ.
+- Календарь прошлых / годовая доходность.
 - Sector weights, quiet mode, cash-позиция, обзор без индекса.
-- Apply ребаланса (отдельная линия).
