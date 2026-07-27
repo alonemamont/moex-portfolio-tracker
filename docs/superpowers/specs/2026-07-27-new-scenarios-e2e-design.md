@@ -6,7 +6,7 @@ Add browser E2E coverage for recently shipped behavior:
 
 - [Dividend calendar design](2026-07-27-dividend-calendar-design.md), especially sections 5--7 and empty states 7.1--7.3.
 - [Rebalance modes design](2026-07-27-rebalance-modes-design.md), sections 5.2 and 6.
-- Zero threshold fix in `aaa0032` / `RebalanceTab.tsx`: an explicitly entered `0` must reach `buildRebalancePlan`, rather than fall back to `0.01`.
+- `RebalanceTab.tsx` / `parseThresholdInput`: an explicitly entered `0` must reach `buildRebalancePlan`, rather than fall back to `0.01`. Commit `aaa0032` is historical context only.
 
 ## In scope
 
@@ -48,11 +48,11 @@ Fixture serializes `dividendsByTicker[ticker]` as ISS XML:
 </rows></data></document>
 ```
 
-Route matching distinguishes composition (`/analytics/`), security data (`securities.xml`), latest-dividend requests, and history (`/securities/{TICKER}/dividends.xml`). It records or asserts history request ticker for update scenario. Omitted `dividendsByTicker` returns current empty-dividend XML, preserving existing golden-path behavior. Future fixed date `2099-01-01` avoids dependence on browser clock; no clock freeze required.
+Route matching distinguishes composition (`/analytics/`), security data (`securities.xml`), and the single dividend endpoint (`/securities/{TICKER}/dividends.xml`). Both latest-dividend and dividend-history clients use that endpoint and consume same mock XML. Update scenario asserts `SBER` request occurs only after clicking `Обновить дивиденды`, not during its preceding market update. Omitted `dividendsByTicker` returns current empty-dividend XML, preserving existing golden-path behavior. Future fixed date `2099-01-01` avoids dependence on browser clock; no clock freeze required.
 
 ## Portfolio setup
 
-Dividend tests use normal UI path: start empty with composition `GAZP`, add `SBER` with 10 shares through `+ Тикер`, wait for automatic market update, then open `Дивиденды`. No file picker, download, or `addInitScript` is needed.
+Dividend tests use normal UI path: start empty with composition `GAZP`, add `SBER` with 10 shares through `+ Тикер`, wait until `SBER` appears in portfolio table with mocked market price, then open `Дивиденды`. Dividend fixture provides security data for both `GAZP` and `SBER`. No file picker, download, or `addInitScript` is needed.
 
 Rebalance test uses normal UI path and one route fixture:
 
@@ -60,7 +60,7 @@ Rebalance test uses normal UI path and one route fixture:
 2. Add out-of-index `CSH` with 100 shares; fixture price is 1,000, so automatic market update gives portfolio value 100,000 and `TST` has zero shares.
 3. Open `Ребаланс`, select `Мин. сделок`, set budget `100`.
 
-One affordable `TST` lot costs 100 and raises average compliance by `0.001`, below `0.01` but not below `0`. This is contrasting oracle: default threshold produces `threshold_not_met`; zero produces a `TST` plan row. It detects both zero-input parsing and input-to-domain wiring regressions. Budget is mandatory and entered before either assertion.
+One affordable `TST` lot costs 100 and raises average compliance by approximately `0.001`, below `0.01` but not below `0`. This is contrasting oracle: default threshold produces `threshold_not_met`; zero produces a `TST` plan row. It detects both zero-input parsing and input-to-domain wiring regressions. Budget is mandatory and entered before either assertion.
 
 ## Out of scope
 
