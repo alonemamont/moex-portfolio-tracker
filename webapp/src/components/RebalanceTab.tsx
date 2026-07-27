@@ -38,6 +38,12 @@ function parseInputNumber(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function parseThresholdInput(value: string): number {
+  if (value === "") return 0.01;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0.01;
+}
+
 function budgetFieldLabel(mode: RebalanceMode): string {
   return mode === "free_cash" ? "Свободный кэш, ₽" : "Сумма, ₽";
 }
@@ -197,7 +203,7 @@ export function RebalanceTab() {
   const [thresholdInput, setThresholdInput] = useState("0.01");
 
   const budgetRub = parseInputNumber(budgetInput);
-  const complianceGainThreshold = parseInputNumber(thresholdInput) || 0.01;
+  const complianceGainThreshold = parseThresholdInput(thresholdInput);
 
   const plan = useMemo(
     () =>

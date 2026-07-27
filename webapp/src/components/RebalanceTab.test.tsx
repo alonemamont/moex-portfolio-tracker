@@ -1,7 +1,12 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { RebalancePanel } from "./RebalanceTab";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { RebalancePanel, RebalanceTab } from "./RebalanceTab";
 import { RebalancePlan } from "../domain/rebalancePlan";
+import { usePortfolio } from "../portfolio/usePortfolio";
+import { useCalculatedPositions } from "../portfolio/useCalculatedPositions";
+
+vi.mock("../portfolio/usePortfolio", () => ({ usePortfolio: vi.fn() }));
+vi.mock("../portfolio/useCalculatedPositions", () => ({ useCalculatedPositions: vi.fn() }));
 
 const emptyPlan = (over: Partial<RebalancePlan> = {}): RebalancePlan => ({
   mode: "budget",
@@ -75,5 +80,53 @@ describe("RebalancePanel", () => {
     );
     expect(screen.getByRole("button", { name: "Копировать TSV" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Скачать CSV" })).toBeDisabled();
+  });
+});
+
+describe("RebalanceTab", () => {
+  beforeEach(() => {
+    vi.mocked(usePortfolio).mockReturnValue({
+      file: { pairs: [] },
+      selectedIndex: "IMOEX",
+    } as unknown as ReturnType<typeof usePortfolio>);
+    vi.mocked(useCalculatedPositions).mockReturnValue({
+      calculated: [
+        {
+          ticker: "TST",
+          coefficient: 1,
+          sharesOwned: 0,
+          shortName: "Test",
+          indexWeight: 100,
+          price: 100,
+          lotSize: 1,
+          dividendPerShare: 0,
+          status: "in_index",
+          sector: "",
+          targetAllocation: 100,
+          actualShare: 0,
+          compliance: 0,
+          positionValue: 0,
+          income: 0,
+          dividendYield: null,
+          sharesToBuy: null,
+          buyAmountRub: null,
+          manualSharesOwned: 0,
+        },
+      ],
+      portfolioValue: 100_000,
+      avgCompliance: 0,
+      largestSurplus: null,
+      largestShortfall: null,
+    });
+  });
+
+  it("keeps zero threshold and shows an affordable min-trades purchase", () => {
+    render(<RebalanceTab />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Мин. сделок" }));
+    fireEvent.change(screen.getByLabelText("Сумма, ₽"), { target: { value: "100" } });
+    fireEvent.change(screen.getByLabelText("Порог прироста"), { target: { value: "0" } });
+
+    expect(screen.getAllByText("TST")).toHaveLength(2);
   });
 });
