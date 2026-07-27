@@ -401,3 +401,113 @@ describe("buildRebalancePlan budget/free_cash", () => {
     expect(plan.avgComplianceAfter!).toBeGreaterThanOrEqual(plan.avgComplianceBefore!);
   });
 });
+
+const multiShortfall = [
+  pos({
+    ticker: "BIG",
+    targetAllocation: 40,
+    actualShare: 0,
+    compliance: 0,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 0,
+    indexWeight: 40,
+    positionValue: 0,
+    status: "in_index",
+  }),
+  pos({
+    ticker: "MID",
+    targetAllocation: 30,
+    actualShare: 10,
+    compliance: 10 / 30,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 10,
+    indexWeight: 30,
+    positionValue: 1000,
+    status: "in_index",
+  }),
+  pos({
+    ticker: "SMALL",
+    targetAllocation: 20,
+    actualShare: 15,
+    compliance: 15 / 20,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 15,
+    indexWeight: 20,
+    positionValue: 1500,
+    status: "in_index",
+  }),
+  pos({
+    ticker: "OK",
+    targetAllocation: 10,
+    actualShare: 75,
+    compliance: 75 / 10,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 75,
+    indexWeight: 10,
+    positionValue: 7500,
+    status: "in_index",
+  }),
+];
+
+describe("buildRebalancePlan min_trades", () => {
+  it("requires budget", () => {
+    const plan = buildRebalancePlan({
+      calculated: multiShortfall,
+      pairs: [],
+      portfolioValue: 10_000,
+      budgetRub: 0,
+      mode: "min_trades",
+    });
+    expect(plan.emptyReason).toBe("no_budget");
+  });
+
+  it("stops adding units when compliance gain is below threshold", () => {
+    const plan = buildRebalancePlan({
+      calculated: multiShortfall,
+      pairs: [],
+      portfolioValue: 10_000,
+      budgetRub: 5000,
+      mode: "min_trades",
+      complianceGainThreshold: 0.5,
+    });
+    const unitIds = [...new Set(plan.lines.map((l) => l.unitId))];
+    expect(unitIds.length).toBeLessThanOrEqual(1);
+    if (plan.lines.length > 0) {
+      expect(unitIds[0]).toBe("BIG");
+    }
+  });
+
+  it("returns threshold_not_met when even the first unit cannot clear the threshold", () => {
+    const plan = buildRebalancePlan({
+      calculated: multiShortfall,
+      pairs: [],
+      portfolioValue: 10_000,
+      budgetRub: 100,
+      mode: "min_trades",
+      complianceGainThreshold: 10,
+    });
+    expect(plan.emptyReason).toBe("threshold_not_met");
+    expect(plan.lines).toEqual([]);
+  });
+
+  it("touches fewer or equal units than full budget mode at a high threshold", () => {
+    const base = {
+      calculated: multiShortfall,
+      pairs: [] as Pair[],
+      portfolioValue: 10_000,
+      budgetRub: 5000,
+    };
+    const full = buildRebalancePlan({ ...base, mode: "budget" });
+    const few = buildRebalancePlan({
+      ...base,
+      mode: "min_trades",
+      complianceGainThreshold: 0.05,
+    });
+    const count = (p: { lines: { unitId: string }[] }) => new Set(p.lines.map((l) => l.unitId)).size;
+    expect(count(few)).toBeLessThanOrEqual(count(full));
+  });
+});

@@ -419,7 +419,52 @@ export function buildRebalancePlan(input: BuildRebalancePlanInput): RebalancePla
   if (units.length === 0) return empty("no_shortfall");
 
   if (mode === "min_trades") {
-    return empty("threshold_not_met");
+    const threshold = input.complianceGainThreshold ?? 0.01;
+    const sorted = [...units].sort((a, b) => b.shortfallRub - a.shortfallRub);
+    let selected: RebalanceUnit[] = [];
+    let prevCompliance = avgComplianceBefore;
+
+    for (const unit of sorted) {
+      const candidate = [...selected, unit];
+      const trialLines = allocateBudget(candidate, budgetRub);
+      const spentTotal = trialLines.reduce((s, l) => s + l.spendRub, 0);
+      const portfolioValueAfter = portfolioValue + spentTotal;
+      const sharesAfter = sharesAfterByTicker(calculated, trialLines);
+      const nextCompliance = simulateAvgCompliance(
+        calculated,
+        pairs,
+        sharesAfter,
+        portfolioValueAfter
+      );
+
+      const gain =
+        prevCompliance !== null && nextCompliance !== null
+          ? nextCompliance - prevCompliance
+          : null;
+
+      if (gain !== null && gain >= threshold) {
+        selected = candidate;
+        prevCompliance = nextCompliance;
+      } else {
+        break;
+      }
+    }
+
+    if (selected.length === 0) return empty("threshold_not_met");
+
+    const lines = allocateBudget(selected, budgetRub);
+    if (lines.length === 0) return empty("budget_too_small");
+
+    return finalizePlan({
+      mode,
+      budgetRub,
+      lines,
+      calculated,
+      pairs,
+      portfolioValue,
+      units,
+      avgComplianceBefore,
+    });
   }
 
   const lines = allocateBudget(units, budgetRub);
