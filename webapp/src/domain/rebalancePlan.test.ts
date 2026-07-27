@@ -288,6 +288,39 @@ describe("allocateBudget", () => {
     expect(allocateBudget(units, 1000)).toEqual([]);
   });
 
+  it("skips a pair member with no price", () => {
+    const unit: RebalanceUnit = {
+      unitId: "LIVE+NO_PRICE",
+      kind: "pair",
+      shortfallRub: 1_000,
+      targetAllocation: 10,
+      actualShare: 0,
+      representativePrice: 100,
+      members: [
+        {
+          ticker: "LIVE",
+          price: 100,
+          lotSize: 1,
+          sharesOwned: 0,
+          indexWeight: 1,
+          status: "in_index",
+          coefficient: 1,
+        },
+        {
+          ticker: "NO_PRICE",
+          price: null,
+          lotSize: 1,
+          sharesOwned: 0,
+          indexWeight: 1,
+          status: "in_index",
+          coefficient: 1,
+        },
+      ],
+    };
+
+    expect(allocateBudget([unit], 1_000).map((line) => line.ticker)).toEqual(["LIVE"]);
+  });
+
   it("treats null lotSize as 1", () => {
     const units = [
       soloUnit({
@@ -453,6 +486,32 @@ describe("buildRebalancePlan min_trades", () => {
       mode: "min_trades",
     });
     expect(plan.emptyReason).toBe("no_budget");
+  });
+
+  it("accepts an affordable purchase with zero threshold", () => {
+    const plan = buildRebalancePlan({
+      calculated: [
+        pos({
+          ticker: "TST",
+          targetAllocation: 100,
+          actualShare: 0,
+          compliance: 0,
+          price: 100,
+          lotSize: 1,
+          sharesOwned: 0,
+          indexWeight: 100,
+          status: "in_index",
+        }),
+      ],
+      pairs: [],
+      portfolioValue: 100_000,
+      budgetRub: 100,
+      mode: "min_trades",
+      complianceGainThreshold: 0,
+    });
+
+    expect(plan.emptyReason).toBeNull();
+    expect(plan.lines).toEqual([expect.objectContaining({ ticker: "TST", lots: 1 })]);
   });
 
   it("stops adding units when compliance gain is below threshold", () => {
