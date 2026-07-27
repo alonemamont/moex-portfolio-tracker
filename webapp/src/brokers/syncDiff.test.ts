@@ -96,6 +96,8 @@ describe("applySyncDiff", () => {
       brokerConnections: [],
       brokerAccounts: [],
       transactions: [],
+      dividendEvents: [],
+      dividendsFetchedAt: null,
     };
   }
 

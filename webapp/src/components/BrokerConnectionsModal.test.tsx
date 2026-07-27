@@ -60,6 +60,8 @@ function makeFile(connections: BrokerConnection[]): PortfolioFile {
     brokerConnections: connections,
     brokerAccounts: [],
     transactions: [],
+    dividendEvents: [],
+    dividendsFetchedAt: null,
   };
 }
 

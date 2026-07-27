@@ -16,6 +16,8 @@ const baseFile: PortfolioFile = {
   brokerConnections: [],
   brokerAccounts: [],
   transactions: [],
+  dividendEvents: [],
+  dividendsFetchedAt: null,
 };
 
 describe("switchIndex", () => {

@@ -3,7 +3,16 @@ import { saveViaFileSystemAccess, downloadPortfolioFile } from "./savePortfolioF
 import { PortfolioFile } from "../types";
 
 const sample: PortfolioFile = {
-  version: 1, positions: [], sectors: {}, history: [], pairs: [], brokerConnections: [], brokerAccounts: [], transactions: [],
+  version: 1,
+  positions: [],
+  sectors: {},
+  history: [],
+  pairs: [],
+  brokerConnections: [],
+  brokerAccounts: [],
+  transactions: [],
+  dividendEvents: [],
+  dividendsFetchedAt: null,
 };
 
 describe("saveViaFileSystemAccess", () => {

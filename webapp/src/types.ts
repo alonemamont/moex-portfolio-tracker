@@ -97,6 +97,12 @@ export interface Transaction {
   accountId?: string;
 }
 
+export interface DividendEvent {
+  ticker: string;
+  registryCloseDate: string;
+  valuePerShare: number;
+}
+
 export interface PortfolioFile {
   version: 1;
   positions: Position[];
@@ -106,4 +112,6 @@ export interface PortfolioFile {
   brokerConnections: BrokerConnection[];
   brokerAccounts: BrokerAccount[];
   transactions: Transaction[];
+  dividendEvents: DividendEvent[];
+  dividendsFetchedAt: string | null;
 }

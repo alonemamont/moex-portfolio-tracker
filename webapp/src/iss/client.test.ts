@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fetchIndexComposition, fetchSecurities, fetchLatestDividend, fetchDividendsForTickers } from "./client";
+import {
+  fetchDividendHistoriesForTickers,
+  fetchDividendHistory,
+  fetchDividendsForTickers,
+  fetchIndexComposition,
+  fetchLatestDividend,
+  fetchSecurities,
+} from "./client";
 import { mockFetchByUrl } from "../testUtils/mockFetch";
 
 const compositionXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -113,6 +120,94 @@ describe("fetchLatestDividend", () => {
   it("returns 0 when there is no dividend history", async () => {
     mockFetchByUrl([{ match: "", response: () => new Response(dividendsXml(""), { status: 200 }) }]);
     await expect(fetchLatestDividend("NEWIPO")).resolves.toBe(0);
+  });
+});
+
+describe("fetchDividendHistory", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("parses all valid rows without start/limit query params", async () => {
+    mockFetchByUrl([
+      {
+        match: "",
+        response: () =>
+          new Response(
+            dividendsXml(
+              `<row secid="SBER" registryclosedate="2024-07-11" value="33.3" />` +
+                `<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />`
+            ),
+            { status: 200 }
+          ),
+      },
+    ]);
+    const events = await fetchDividendHistory("sber");
+    expect(events).toEqual([
+      { ticker: "SBER", registryCloseDate: "2024-07-11", valuePerShare: 33.3 },
+      { ticker: "SBER", registryCloseDate: "2025-07-18", valuePerShare: 34.84 },
+    ]);
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(calledUrl).toBe("https://iss.moex.com/iss/securities/SBER/dividends.xml");
+    expect(calledUrl.includes("start=")).toBe(false);
+    expect(calledUrl.includes("limit=")).toBe(false);
+  });
+
+  it("URL-encodes tickers and returns [] for empty block", async () => {
+    mockFetchByUrl([
+      {
+        match: "/securities/",
+        response: () => new Response(dividendsXml(""), { status: 200 }),
+      },
+    ]);
+    await expect(fetchDividendHistory("x y")).resolves.toEqual([]);
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(calledUrl).toContain("/securities/X%20Y/dividends.xml");
+  });
+
+  it("throws on HTTP error", async () => {
+    mockFetchByUrl([{ match: "", response: () => new Response("", { status: 500 }) }]);
+    await expect(fetchDividendHistory("SBER")).rejects.toThrow(/500/);
+  });
+});
+
+describe("fetchDividendHistoriesForTickers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("splits mixed success/fail and treats empty tape as success", async () => {
+    mockFetchByUrl([
+      { match: "/BROKEN/", response: () => new Response("", { status: 500 }) },
+      {
+        match: "/EMPTY/",
+        response: () => new Response(dividendsXml(""), { status: 200 }),
+      },
+      {
+        match: "/SBER/",
+        response: () =>
+          new Response(
+            dividendsXml(`<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />`),
+            { status: 200 }
+          ),
+      },
+    ]);
+    const result = await fetchDividendHistoriesForTickers(["SBER", "BROKEN", "EMPTY"], 2);
+    expect(result.succeededTickers.sort()).toEqual(["EMPTY", "SBER"]);
+    expect(result.failedTickers).toEqual(["BROKEN"]);
+    expect(result.eventsByTicker.get("SBER")).toEqual([
+      { ticker: "SBER", registryCloseDate: "2025-07-18", valuePerShare: 34.84 },
+    ]);
+    expect(result.eventsByTicker.get("EMPTY")).toEqual([]);
+    expect(result.eventsByTicker.has("BROKEN")).toBe(false);
+  });
+
+  it("returns full fail when every ticker errors", async () => {
+    mockFetchByUrl([{ match: "", response: () => new Response("", { status: 500 }) }]);
+    const result = await fetchDividendHistoriesForTickers(["A", "B"], 2);
+    expect(result.succeededTickers).toEqual([]);
+    expect(result.failedTickers.sort()).toEqual(["A", "B"]);
+    expect(result.eventsByTicker.size).toBe(0);
   });
 });
 

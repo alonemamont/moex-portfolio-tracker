@@ -1062,3 +1062,44 @@ input[type="checkbox"] {
     padding: 8px 10px;
   }
 }
+
+.dividends-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.dividends-fetched,
+.dividends-save-hint,
+.dividends-disclaimer {
+  color: var(--muted);
+}
+
+.dividends-disclaimer {
+  margin: 0 0 16px;
+  max-width: 72ch;
+}
+
+.dividends-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dividends-table th,
+.dividends-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.dividends-table th.num,
+.dividends-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dividends-empty {
+  margin-top: 12px;
+}

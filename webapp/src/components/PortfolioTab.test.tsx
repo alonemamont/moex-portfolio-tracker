@@ -22,6 +22,8 @@ const sampleFile: PortfolioFile = {
   brokerConnections: [],
   brokerAccounts: [],
   transactions: [],
+  dividendEvents: [],
+  dividendsFetchedAt: null,
 };
 
 const dummyToken = { ciphertext: "c", iv: "i", salt: "s" };
@@ -51,6 +53,8 @@ const brokerFile: PortfolioFile = {
   ],
   brokerAccounts: [],
   transactions: [],
+  dividendEvents: [],
+  dividendsFetchedAt: null,
 };
 
 function Harness({ file }: { file: PortfolioFile }) {

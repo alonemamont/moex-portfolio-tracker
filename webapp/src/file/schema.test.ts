@@ -42,6 +42,8 @@ const valid = {
       accountId: "account-1",
     },
   ],
+  dividendEvents: [],
+  dividendsFetchedAt: null,
 };
 
 describe("parsePortfolioFile", () => {
@@ -57,17 +59,53 @@ describe("parsePortfolioFile", () => {
       brokerConnections: [],
       brokerAccounts: [],
       transactions: [],
+      dividendEvents: [],
+      dividendsFetchedAt: null,
     });
   });
 
-  it("defaults brokerAccounts and transactions for a version-1 file created before transactions existed", () => {
+  it("defaults dividendEvents and dividendsFetchedAt when absent", () => {
     const oldFile = { version: 1, positions: [], sectors: {}, history: [], pairs: [] };
     expect(parsePortfolioFile(oldFile)).toEqual({
       ...oldFile,
       brokerConnections: [],
       brokerAccounts: [],
       transactions: [],
+      dividendEvents: [],
+      dividendsFetchedAt: null,
     });
+  });
+
+  it("accepts dividendEvents and dividendsFetchedAt when present", () => {
+    const parsed = parsePortfolioFile({
+      ...valid,
+      dividendEvents: [
+        { ticker: "SBER", registryCloseDate: "2026-07-18", valuePerShare: 34.84 },
+      ],
+      dividendsFetchedAt: "2026-07-27T10:00:00.000Z",
+    });
+    expect(parsed.dividendEvents).toEqual([{ ticker: "SBER", registryCloseDate: "2026-07-18", valuePerShare: 34.84 }]);
+    expect(parsed.dividendsFetchedAt).toBe("2026-07-27T10:00:00.000Z");
+  });
+
+  it("rejects non-calendar registryCloseDate and non-positive valuePerShare", () => {
+    expect(() =>
+      parsePortfolioFile({
+        ...valid,
+        dividendEvents: [
+          { ticker: "SBER", registryCloseDate: "2024-02-31", valuePerShare: 1 },
+        ],
+        dividendsFetchedAt: null,
+      })
+    ).toThrow(PortfolioFileValidationError);
+
+    expect(() =>
+      parsePortfolioFile({
+        ...valid,
+        dividendEvents: [{ ticker: "SBER", registryCloseDate: "2026-07-18", valuePerShare: 0 }],
+        dividendsFetchedAt: null,
+      })
+    ).toThrow(PortfolioFileValidationError);
   });
 
   it("trims account names/comments and removes an empty comment", () => {
