@@ -13,5 +13,7 @@ export async function createEmptyPortfolio(): Promise<PortfolioFile> {
     brokerConnections: [],
     brokerAccounts: [],
     transactions: [],
+    dividendEvents: [],
+    dividendsFetchedAt: null,
   };
 }

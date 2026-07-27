@@ -16,6 +16,8 @@ const baseFile: PortfolioFile = {
   brokerConnections: [],
   brokerAccounts: [],
   transactions: [],
+  dividendEvents: [],
+  dividendsFetchedAt: null,
 };
 
 describe("mergeCompletedMarketUpdate", () => {
@@ -60,6 +62,33 @@ describe("mergeCompletedMarketUpdate", () => {
     expect(merged.brokerConnections).toEqual(latest.brokerConnections);
     expect(merged.brokerAccounts).toEqual(latest.brokerAccounts);
     expect(merged.transactions).toEqual(latest.transactions);
+    expect(merged.history).toEqual(completedMarketUpdate.history);
+  });
+
+  it("keeps concurrent dividendEvents and dividendsFetchedAt from the latest file", () => {
+    const latest: PortfolioFile = {
+      ...baseFile,
+      dividendEvents: [{ ticker: "GAZP", registryCloseDate: "2026-08-01", valuePerShare: 12 }],
+      dividendsFetchedAt: "2026-07-27T12:00:00.000Z",
+    };
+    const completedMarketUpdate: PortfolioFile = {
+      ...baseFile,
+      dividendEvents: [],
+      dividendsFetchedAt: null,
+      history: [
+        {
+          timestamp: "2026-07-27T12:05:00.000Z",
+          portfolioValue: 1000,
+          avgCompliance: null,
+          snapshot: [],
+        },
+      ],
+    };
+
+    const merged = mergeCompletedMarketUpdate(latest, completedMarketUpdate);
+
+    expect(merged.dividendEvents).toEqual(latest.dividendEvents);
+    expect(merged.dividendsFetchedAt).toBe(latest.dividendsFetchedAt);
     expect(merged.history).toEqual(completedMarketUpdate.history);
   });
 });
@@ -110,6 +139,22 @@ describe("runMarketUpdate", () => {
     const { liveByTicker } = await runMarketUpdate(baseFile, previousLiveByTicker);
 
     expect(liveByTicker.get("GAZP")?.price).toBe(92.79);
+  });
+
+  it("does not rewrite dividendEvents during market update", async () => {
+    vi.spyOn(marketDataModule, "fetchMarketData").mockResolvedValue({
+      composition: [{ ticker: "GAZP", shortName: "ГАЗПРОМ ао", weight: 9.32 }],
+      securities: new Map([["GAZP", { shortName: "ГАЗПРОМ ао", price: 92.79, lotSize: 10 }]]),
+      dividends: new Map([["GAZP", 0]]),
+    });
+    const fileWithDivs: PortfolioFile = {
+      ...baseFile,
+      dividendEvents: [{ ticker: "GAZP", registryCloseDate: "2026-08-01", valuePerShare: 12 }],
+      dividendsFetchedAt: "2026-07-27T12:00:00.000Z",
+    };
+    const { file: updated } = await runMarketUpdate(fileWithDivs);
+    expect(updated.dividendEvents).toEqual(fileWithDivs.dividendEvents);
+    expect(updated.dividendsFetchedAt).toBe(fileWithDivs.dividendsFetchedAt);
   });
 
   it("forwards the given indexId to fetchMarketData, defaulting to IMOEX", async () => {

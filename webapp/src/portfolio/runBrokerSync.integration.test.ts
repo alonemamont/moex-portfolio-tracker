@@ -30,6 +30,8 @@ function file(): PortfolioFile {
     brokerConnections: [connection],
     brokerAccounts: [],
     transactions: [],
+    dividendEvents: [],
+    dividendsFetchedAt: null,
   };
 }
 

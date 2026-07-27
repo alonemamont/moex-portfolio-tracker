@@ -24,6 +24,8 @@ export function mergeCompletedMarketUpdate(
     brokerConnections: latestFile.brokerConnections,
     brokerAccounts: latestFile.brokerAccounts,
     transactions: latestFile.transactions,
+    dividendEvents: latestFile.dividendEvents,
+    dividendsFetchedAt: latestFile.dividendsFetchedAt,
   };
 }
 

@@ -15,6 +15,7 @@ function live(overrides: Partial<LiveData> & { ticker: string }): LiveData {
 }
 
 function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
+  const { dividendEvents, dividendsFetchedAt, ...rest } = overrides;
   return {
     version: 1,
     positions: [],
@@ -24,7 +25,9 @@ function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
     brokerConnections: [],
     brokerAccounts: [],
     transactions: [],
-    ...overrides,
+    ...rest,
+    dividendEvents: dividendEvents ?? [],
+    dividendsFetchedAt: dividendsFetchedAt ?? null,
   };
 }
 

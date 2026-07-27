@@ -25,6 +25,8 @@ function file(): PortfolioFile {
       date: "2026-07-13",
       accountId: "account-1",
     }],
+    dividendEvents: [],
+    dividendsFetchedAt: null,
   };
 }
 

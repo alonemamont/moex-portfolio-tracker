@@ -77,6 +77,14 @@ const transactionSchema = z.object({
   accountId: z.string().min(1).optional(),
 });
 
+const dividendEventSchema = z.object({
+  ticker: z.string().min(1),
+  registryCloseDate: z.string().refine(isValidTransactionDate, "must be a real YYYY-MM-DD date"),
+  valuePerShare: z
+    .number()
+    .refine((n) => Number.isFinite(n) && n > 0, "must be finite and > 0"),
+});
+
 const portfolioFileSchema = z.object({
   version: z.literal(1),
   positions: z.array(positionSchema),
@@ -86,6 +94,8 @@ const portfolioFileSchema = z.object({
   brokerConnections: z.array(brokerConnectionSchema).default([]),
   brokerAccounts: z.array(brokerAccountSchema).default([]),
   transactions: z.array(transactionSchema).default([]),
+  dividendEvents: z.array(dividendEventSchema).default([]),
+  dividendsFetchedAt: z.string().nullable().default(null),
 }).superRefine((file, ctx) => {
   const accountIds = new Set<string>();
   const accountNames = new Set<string>();

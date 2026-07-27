@@ -1,6 +1,8 @@
 import { parseIssDataBlock } from "./xml";
 import { pLimit } from "../concurrency/pLimit";
 import { getHttpTransport } from "../http/transport";
+import { DividendEvent } from "../types";
+import { normalizeTicker, parseDividendHistoryRows } from "../domain/dividendCalendar";
 
 const ISS_BASE = "https://iss.moex.com/iss";
 const transport = getHttpTransport();
@@ -82,6 +84,52 @@ export async function fetchLatestDividend(ticker: string): Promise<number> {
 
   const latest = rows.reduce((a, b) => (a.registryclosedate > b.registryclosedate ? a : b));
   return Number(latest.value);
+}
+
+export async function fetchDividendHistory(ticker: string): Promise<DividendEvent[]> {
+  const normalized = normalizeTicker(ticker);
+  const url = `${ISS_BASE}/securities/${encodeURIComponent(normalized)}/dividends.xml`;
+  const response = await transport(url);
+  if (!response.ok) {
+    throw new Error(`ISS dividends request failed for ${normalized}: ${response.status}`);
+  }
+  const text = await response.text();
+  const rows = parseIssDataBlock(text, "dividends");
+  return parseDividendHistoryRows(normalized, rows);
+}
+
+export interface DividendHistoryBatchResult {
+  eventsByTicker: Map<string, DividendEvent[]>;
+  failedTickers: string[];
+  succeededTickers: string[];
+}
+
+export async function fetchDividendHistoriesForTickers(
+  tickers: string[],
+  concurrency = 5
+): Promise<DividendHistoryBatchResult> {
+  const limit = pLimit(concurrency);
+  const eventsByTicker = new Map<string, DividendEvent[]>();
+  const failedTickers: string[] = [];
+  const succeededTickers: string[] = [];
+
+  const unique = [...new Set(tickers.map(normalizeTicker).filter(Boolean))];
+
+  await Promise.all(
+    unique.map((ticker) =>
+      limit(async () => {
+        try {
+          const events = await fetchDividendHistory(ticker);
+          eventsByTicker.set(ticker, events);
+          succeededTickers.push(ticker);
+        } catch {
+          failedTickers.push(ticker);
+        }
+      })
+    )
+  );
+
+  return { eventsByTicker, failedTickers, succeededTickers };
 }
 
 export async function fetchDividendsForTickers(
