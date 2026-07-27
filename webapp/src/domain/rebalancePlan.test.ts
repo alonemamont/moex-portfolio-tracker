@@ -439,18 +439,6 @@ const multiShortfall = [
     positionValue: 1500,
     status: "in_index",
   }),
-  pos({
-    ticker: "OK",
-    targetAllocation: 10,
-    actualShare: 75,
-    compliance: 75 / 10,
-    price: 100,
-    lotSize: 1,
-    sharesOwned: 75,
-    indexWeight: 10,
-    positionValue: 7500,
-    status: "in_index",
-  }),
 ];
 
 describe("buildRebalancePlan min_trades", () => {
@@ -472,13 +460,26 @@ describe("buildRebalancePlan min_trades", () => {
       portfolioValue: 10_000,
       budgetRub: 5000,
       mode: "min_trades",
-      complianceGainThreshold: 0.5,
+      complianceGainThreshold: 0.15,
     });
     const unitIds = [...new Set(plan.lines.map((l) => l.unitId))];
-    expect(unitIds.length).toBeLessThanOrEqual(1);
-    if (plan.lines.length > 0) {
-      expect(unitIds[0]).toBe("BIG");
-    }
+    expect(plan.emptyReason).toBeNull();
+    expect(unitIds).toEqual(["BIG"]);
+  });
+
+  it("accepts multiple units when threshold is low then stops mid-list", () => {
+    const plan = buildRebalancePlan({
+      calculated: multiShortfall,
+      pairs: [],
+      portfolioValue: 10_000,
+      budgetRub: 5000,
+      mode: "min_trades",
+      complianceGainThreshold: 0.02,
+    });
+    const unitIds = [...new Set(plan.lines.map((l) => l.unitId))];
+    expect(plan.emptyReason).toBeNull();
+    expect(unitIds.length).toBe(2);
+    expect(unitIds).toEqual(["BIG", "MID"]);
   });
 
   it("returns threshold_not_met when even the first unit cannot clear the threshold", () => {
@@ -505,9 +506,11 @@ describe("buildRebalancePlan min_trades", () => {
     const few = buildRebalancePlan({
       ...base,
       mode: "min_trades",
-      complianceGainThreshold: 0.05,
+      complianceGainThreshold: 0.15,
     });
     const count = (p: { lines: { unitId: string }[] }) => new Set(p.lines.map((l) => l.unitId)).size;
-    expect(count(few)).toBeLessThanOrEqual(count(full));
+    expect(few.emptyReason).toBeNull();
+    expect(count(few)).toBeGreaterThan(0);
+    expect(count(few)).toBeLessThan(count(full));
   });
 });
