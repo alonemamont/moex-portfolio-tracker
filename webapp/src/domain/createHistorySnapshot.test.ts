@@ -21,6 +21,7 @@ function calc(overrides: Partial<CalculatedPosition> & { ticker: string }): Calc
     dividendYield: null,
     sharesToBuy: null,
     buyAmountRub: null,
+    manualSharesOwned: 0,
     ...overrides,
   };
 }

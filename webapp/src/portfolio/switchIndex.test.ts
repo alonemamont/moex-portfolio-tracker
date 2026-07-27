@@ -3,7 +3,9 @@ import { switchIndex } from "./runMarketUpdate";
 import * as marketDataModule from "../iss/marketData";
 import { PortfolioFile } from "../types";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const baseFile: PortfolioFile = {
   version: 1,
@@ -11,6 +13,9 @@ const baseFile: PortfolioFile = {
   sectors: {},
   history: [{ timestamp: "2026-07-10T00:00:00.000Z", portfolioValue: 100, avgCompliance: 1, snapshot: [] }],
   pairs: [],
+  brokerConnections: [],
+  brokerAccounts: [],
+  transactions: [],
 };
 
 describe("switchIndex", () => {

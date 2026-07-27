@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fetchIndexComposition, fetchSecurities, fetchLatestDividend, fetchDividendsForTickers } from "./client";
+import { mockFetchByUrl } from "../testUtils/mockFetch";
 
 const compositionXml = `<?xml version="1.0" encoding="UTF-8"?>
 <document>
@@ -13,13 +14,7 @@ const compositionXml = `<?xml version="1.0" encoding="UTF-8"?>
 
 describe("fetchIndexComposition", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) => {
-        expect(url).toContain("limit=100");
-        return new Response(compositionXml, { status: 200 });
-      })
-    );
+    mockFetchByUrl([{ match: "limit=100", response: () => new Response(compositionXml, { status: 200 }) }]);
   });
 
   afterEach(() => {
@@ -35,21 +30,12 @@ describe("fetchIndexComposition", () => {
   });
 
   it("requests the given indexId's analytics endpoint", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) => {
-        expect(url).toContain("/analytics/MOEXBC.xml");
-        return new Response(compositionXml, { status: 200 });
-      })
-    );
+    mockFetchByUrl([{ match: "/analytics/MOEXBC.xml", response: () => new Response(compositionXml, { status: 200 }) }]);
     await fetchIndexComposition("MOEXBC");
   });
 
   it("throws when the response is not ok", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("", { status: 500 }))
-    );
+    mockFetchByUrl([{ match: "", response: () => new Response("", { status: 500 }) }]);
     await expect(fetchIndexComposition("IMOEX")).rejects.toThrow(/composition request failed/);
   });
 });
@@ -74,14 +60,9 @@ const securitiesXml = `<?xml version="1.0" encoding="UTF-8"?>
 
 describe("fetchSecurities", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) => {
-        expect(url).toContain("limit=100");
-        expect(url).toContain("securities=GAZP,SBER,DLST");
-        return new Response(securitiesXml, { status: 200 });
-      })
-    );
+    mockFetchByUrl([
+      { match: "securities=GAZP,SBER,DLST", response: () => new Response(securitiesXml, { status: 200 }) },
+    ]);
   });
 
   afterEach(() => {
@@ -107,44 +88,50 @@ const dividendsXml = (rows: string) => `<?xml version="1.0" encoding="UTF-8"?>
 <document><data id="dividends"><rows>${rows}</rows></data></document>`;
 
 describe("fetchLatestDividend", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("returns the value of the row with the latest registryclosedate", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        new Response(
-          dividendsXml(
-            `<row secid="SBER" registryclosedate="2024-07-11" value="33.3" />` +
-              `<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />` +
-              `<row secid="SBER" registryclosedate="2021-05-12" value="18.7" />`
+    mockFetchByUrl([
+      {
+        match: "",
+        response: () =>
+          new Response(
+            dividendsXml(
+              `<row secid="SBER" registryclosedate="2024-07-11" value="33.3" />` +
+                `<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />` +
+                `<row secid="SBER" registryclosedate="2021-05-12" value="18.7" />`
+            ),
+            { status: 200 }
           ),
-          { status: 200 }
-        )
-      )
-    );
+      },
+    ]);
     await expect(fetchLatestDividend("SBER")).resolves.toBe(34.84);
   });
 
   it("returns 0 when there is no dividend history", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(dividendsXml(""), { status: 200 })));
+    mockFetchByUrl([{ match: "", response: () => new Response(dividendsXml(""), { status: 200 }) }]);
     await expect(fetchLatestDividend("NEWIPO")).resolves.toBe(0);
   });
 });
 
 describe("fetchDividendsForTickers", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("resolves 0 for a ticker whose request fails, without failing the whole batch", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) => {
-        if (url.includes("/BROKEN/")) return new Response("", { status: 500 });
-        return new Response(dividendsXml(`<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />`), {
-          status: 200,
-        });
-      })
-    );
+    mockFetchByUrl([
+      { match: "/BROKEN/", response: () => new Response("", { status: 500 }) },
+      {
+        match: "",
+        response: () =>
+          new Response(dividendsXml(`<row secid="SBER" registryclosedate="2025-07-18" value="34.84" />`), {
+            status: 200,
+          }),
+      },
+    ]);
     const result = await fetchDividendsForTickers(["SBER", "BROKEN"], 2);
     expect(result.get("SBER")).toBe(34.84);
     expect(result.get("BROKEN")).toBe(0);

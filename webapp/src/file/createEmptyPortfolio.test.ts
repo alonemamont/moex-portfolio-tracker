@@ -3,7 +3,9 @@ import { createEmptyPortfolio } from "./createEmptyPortfolio";
 import * as client from "../iss/client";
 import { DEFAULT_INDEX_ID } from "../domain/indices";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("createEmptyPortfolio", () => {
   it("seeds one position per current index ticker with coefficient 1 and sharesOwned 0", async () => {
@@ -21,6 +23,8 @@ describe("createEmptyPortfolio", () => {
     ]);
     expect(file.sectors).toEqual({});
     expect(file.history).toEqual([]);
+    expect(file.brokerAccounts).toEqual([]);
+    expect(file.transactions).toEqual([]);
   });
 
   it("calls fetchIndexComposition with DEFAULT_INDEX_ID", async () => {

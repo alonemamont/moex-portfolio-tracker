@@ -2,6 +2,7 @@ import { PortfolioFile, LiveData, Position, CalculatedPosition } from "../types"
 import { fetchMarketData } from "../iss/marketData";
 import { mergeMarketData } from "../domain/merge";
 import { buildCalculatedPositions } from "../domain/buildCalculatedPositions";
+import { sumPositionValues } from "../domain/calculations";
 import { createSectorResolver } from "../domain/sectors";
 import { SECTORS_DEFAULT } from "../data/sectorsDefault";
 import { createHistorySnapshot } from "../domain/createHistorySnapshot";
@@ -12,6 +13,18 @@ interface MarketSnapshot {
   liveByTicker: Map<string, LiveData>;
   calculated: CalculatedPosition[];
   portfolioValue: number;
+}
+
+export function mergeCompletedMarketUpdate(
+  latestFile: PortfolioFile,
+  completedMarketUpdate: PortfolioFile
+): PortfolioFile {
+  return {
+    ...completedMarketUpdate,
+    brokerConnections: latestFile.brokerConnections,
+    brokerAccounts: latestFile.brokerAccounts,
+    transactions: latestFile.transactions,
+  };
 }
 
 async function computeMarketSnapshot(
@@ -32,7 +45,7 @@ async function computeMarketSnapshot(
 
   const resolveSector = createSectorResolver(SECTORS_DEFAULT, currentFile.sectors);
   const calculated = buildCalculatedPositions(positions, liveByTicker, resolveSector, currentFile.pairs);
-  const portfolioValue = calculated.reduce((sum, p) => sum + p.positionValue, 0);
+  const portfolioValue = sumPositionValues(calculated);
 
   return { positions, liveByTicker, calculated, portfolioValue };
 }

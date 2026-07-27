@@ -15,7 +15,17 @@ function live(overrides: Partial<LiveData> & { ticker: string }): LiveData {
 }
 
 function file(overrides: Partial<PortfolioFile> = {}): PortfolioFile {
-  return { version: 1, positions: [], sectors: {}, history: [], pairs: [], ...overrides };
+  return {
+    version: 1,
+    positions: [],
+    sectors: {},
+    history: [],
+    pairs: [],
+    brokerConnections: [],
+    brokerAccounts: [],
+    transactions: [],
+    ...overrides,
+  };
 }
 
 describe("computeCalculatedPositionsResult", () => {
@@ -98,7 +108,7 @@ describe("computeCalculatedPositionsResult", () => {
         { ticker: "SBERP", coefficient: 1, sharesOwned: 5 },
         { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
       ],
-      pairs: [{ tickers: ["SBER", "SBERP"], coefficient: 1 }],
+      pairs: [{ tickers: ["SBER", "SBERP"], coefficients: { SBER: 1, SBERP: 1 } }],
     });
     const liveByTicker = new Map([
       ["SBER", live({ ticker: "SBER", indexWeight: 9, price: 250 })],
@@ -122,7 +132,7 @@ describe("computeCalculatedPositionsResult", () => {
         { ticker: "OLD2", coefficient: 1, sharesOwned: 5 },
         { ticker: "GAZP", coefficient: 1, sharesOwned: 1 },
       ],
-      pairs: [{ tickers: ["OLD1", "OLD2"], coefficient: 1 }],
+      pairs: [{ tickers: ["OLD1", "OLD2"], coefficients: { OLD1: 1, OLD2: 1 } }],
     });
     const liveByTicker = new Map([
       ["OLD1", live({ ticker: "OLD1", status: "out_of_index", indexWeight: 0, price: 250 })],
@@ -141,5 +151,25 @@ describe("computeCalculatedPositionsResult", () => {
     expect(result.largestShortfall?.ticker).not.toBe("OLD1+OLD2");
     expect(result.largestSurplus?.ticker).toBe("GAZP");
     expect(result.largestShortfall?.ticker).toBe("GAZP");
+  });
+
+  it("groups paired positions so members sit adjacent, at the first member's original slot", () => {
+    const f = file({
+      positions: [
+        { ticker: "A", coefficient: 1, sharesOwned: 1 },
+        { ticker: "B", coefficient: 1, sharesOwned: 1 },
+        { ticker: "C", coefficient: 1, sharesOwned: 1 },
+        { ticker: "D", coefficient: 1, sharesOwned: 1 },
+        { ticker: "E", coefficient: 1, sharesOwned: 1 },
+      ],
+      pairs: [{ tickers: ["C", "E"], coefficients: { C: 1, E: 1 } }],
+    });
+    const liveByTicker = new Map(
+      ["A", "B", "C", "D", "E"].map((ticker) => [ticker, live({ ticker, price: 10 })])
+    );
+
+    const result = computeCalculatedPositionsResult(f, liveByTicker);
+
+    expect(result.calculated.map((p) => p.ticker)).toEqual(["A", "B", "C", "E", "D"]);
   });
 });

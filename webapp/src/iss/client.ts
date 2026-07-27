@@ -1,7 +1,9 @@
 import { parseIssDataBlock } from "./xml";
 import { pLimit } from "../concurrency/pLimit";
+import { getHttpTransport } from "../http/transport";
 
 const ISS_BASE = "https://iss.moex.com/iss";
+const transport = getHttpTransport();
 
 export interface IndexCompositionEntry {
   ticker: string;
@@ -11,7 +13,7 @@ export interface IndexCompositionEntry {
 
 export async function fetchIndexComposition(indexId: string): Promise<IndexCompositionEntry[]> {
   const url = `${ISS_BASE}/statistics/engines/stock/markets/index/analytics/${indexId}.xml?limit=100`;
-  const response = await fetch(url);
+  const response = await transport(url);
   if (!response.ok) {
     throw new Error(`ISS composition request failed: ${response.status}`);
   }
@@ -36,7 +38,7 @@ export async function fetchSecurities(tickers: string[]): Promise<Map<string, Se
   const url = `${ISS_BASE}/engines/stock/markets/shares/boards/TQBR/securities.xml?securities=${tickers.join(
     ","
   )}&limit=100`;
-  const response = await fetch(url);
+  const response = await transport(url);
   if (!response.ok) {
     throw new Error(`ISS securities request failed: ${response.status}`);
   }
@@ -70,7 +72,7 @@ export async function fetchSecurities(tickers: string[]): Promise<Map<string, Se
 
 export async function fetchLatestDividend(ticker: string): Promise<number> {
   const url = `${ISS_BASE}/securities/${ticker}/dividends.xml`;
-  const response = await fetch(url);
+  const response = await transport(url);
   if (!response.ok) {
     throw new Error(`ISS dividends request failed for ${ticker}: ${response.status}`);
   }

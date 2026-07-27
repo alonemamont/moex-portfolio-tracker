@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Main-window access to the T-Bank Invest API and MOEX ISS only","local":true,"windows":["main"],"permissions":["core:default",{"identifier":"http:default","allow":[{"url":"https://invest-public-api.tbank.ru/**"},{"url":"https://iss.moex.com/**"}]}]}}

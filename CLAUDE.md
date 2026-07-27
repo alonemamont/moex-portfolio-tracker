@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Response style
+
+Default response style for all new sessions in this repository: caveman full.
+Use terse caveman communication by default on every response.
+Stop only if user explicitly says `stop caveman` or `normal mode`.
+
 ## Project layout
 
 All app code and tooling live in `webapp/` — there is no root `package.json`. Run all npm commands with cwd `webapp/`.

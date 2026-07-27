@@ -1,0 +1,52 @@
+name: Windows portable
+
+on:
+  pull_request:
+    paths:
+      - "webapp/**"
+      - ".github/workflows/windows-portable.yml"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        working-directory: webapp
+        run: npm ci
+      - name: Test and build web application
+        working-directory: webapp
+        run: |
+          npm run test
+          npm run typecheck
+          npm run lint
+          npm run build
+      - name: Build portable executable
+        working-directory: webapp
+        run: npm run tauri:build
+      - name: Smoke-check executable
+        shell: pwsh
+        run: |
+          $exe = "webapp/src-tauri/target/release/moex-portfolio-tracker.exe"
+          if (-not (Test-Path $exe)) { throw "Portable executable was not produced" }
+          if ((Get-Item $exe).Length -le 0) { throw "Portable executable is empty" }
+      - name: Stage portable asset
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: Copy-Item "webapp/src-tauri/target/release/moex-portfolio-tracker.exe" "moex-portfolio-tracker-windows-portable.exe"
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: moex-portfolio-tracker-windows-portable.exe
+          body_path: docs/releases/windows-portable.md

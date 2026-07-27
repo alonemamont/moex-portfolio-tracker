@@ -1,9 +1,9 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, Dispatch, SetStateAction } from "react";
 import { PortfolioFile, LiveData } from "../types";
 
 export interface PortfolioContextValue {
   file: PortfolioFile | null;
-  setFile: (file: PortfolioFile) => void;
+  setFile: Dispatch<SetStateAction<PortfolioFile | null>>;
   fileHandle: FileSystemFileHandle | null;
   setFileHandle: (handle: FileSystemFileHandle | null) => void;
   liveByTicker: Map<string, LiveData>;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Desktop Tauri Runner"
+  short_description: "Run and build this repo's Windows Tauri app from PowerShell, Codex, or cmd."
+  default_prompt: "Use $desktop-tauri-runner to run or build the fresh Windows desktop app for this repository, preferring PowerShell wrappers in Codex or PowerShell sessions."

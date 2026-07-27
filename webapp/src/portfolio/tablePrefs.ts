@@ -1,34 +1,14 @@
-const SEARCH_KEY = "portfolio.search";
-const HIDE_EMPTY_KEY = "portfolio.hideEmpty";
+import { makeLocalStoragePref } from "./localStoragePref";
 
-export function loadSearchPref(): string {
-  try {
-    return localStorage.getItem(SEARCH_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
+const searchPref = makeLocalStoragePref("portfolio.search", "");
+const hideEmptyPref = makeLocalStoragePref("portfolio.hideEmpty", false, String, (raw) => raw === "true");
+const onlyInIndexPref = makeLocalStoragePref("portfolio.onlyInIndex", false, String, (raw) => raw === "true");
 
-export function saveSearchPref(value: string): void {
-  try {
-    localStorage.setItem(SEARCH_KEY, value);
-  } catch {
-    // Swallow error — persistence is best-effort
-  }
-}
+export const loadSearchPref = searchPref.load;
+export const saveSearchPref = searchPref.save;
 
-export function loadHideEmptyPref(): boolean {
-  try {
-    return localStorage.getItem(HIDE_EMPTY_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
+export const loadHideEmptyPref = hideEmptyPref.load;
+export const saveHideEmptyPref = hideEmptyPref.save;
 
-export function saveHideEmptyPref(value: boolean): void {
-  try {
-    localStorage.setItem(HIDE_EMPTY_KEY, String(value));
-  } catch {
-    // Swallow error — persistence is best-effort
-  }
-}
+export const loadOnlyInIndexPref = onlyInIndexPref.load;
+export const saveOnlyInIndexPref = onlyInIndexPref.save;
