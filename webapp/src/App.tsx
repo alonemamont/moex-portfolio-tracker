@@ -9,8 +9,9 @@ import { PortfolioTab } from "./components/PortfolioTab";
 import { ChartsTab } from "./components/ChartsTab";
 import { SectorsTab } from "./components/SectorsTab";
 import { TransactionsTab } from "./components/TransactionsTab";
+import { RebalanceTab } from "./components/RebalanceTab";
 
-type Tab = "portfolio" | "charts" | "sectors" | "transactions";
+type Tab = "portfolio" | "charts" | "sectors" | "transactions" | "rebalance";
 
 function AppShell() {
   const [tab, setTab] = useState<Tab>("portfolio");
@@ -36,12 +37,16 @@ function AppShell() {
             <button type="button" onClick={() => setTab("transactions")} disabled={tab === "transactions"}>
               Транзакции
             </button>
+            <button type="button" onClick={() => setTab("rebalance")} disabled={tab === "rebalance"}>
+              Ребаланс
+            </button>
           </nav>
           <main className="tab-content">
             {tab === "portfolio" && <PortfolioTab autoUpdateSignal={updateSignal} />}
             {tab === "charts" && <ChartsTab />}
             {tab === "sectors" && <SectorsTab />}
             {tab === "transactions" && <TransactionsTab />}
+            {tab === "rebalance" && <RebalanceTab />}
           </main>
         </>
       ) : (
