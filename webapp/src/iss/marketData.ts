@@ -1,7 +1,6 @@
 import {
   fetchIndexComposition,
   fetchSecurities,
-  fetchDividendsForTickers,
   IndexCompositionEntry,
   SecurityInfo,
 } from "./client";
@@ -22,10 +21,7 @@ export async function fetchMarketData(
     new Set([...existingTickers, ...composition.map((c) => c.ticker)])
   );
 
-  const [securities, dividends] = await Promise.all([
-    fetchSecurities(allTickers),
-    fetchDividendsForTickers(allTickers),
-  ]);
+  const securities = await fetchSecurities(allTickers);
 
-  return { composition, securities, dividends };
+  return { composition, securities, dividends: new Map() };
 }
