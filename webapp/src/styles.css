@@ -943,6 +943,119 @@ input[type="checkbox"] {
 
 /* Charts (mobile) */
 
+/* Rebalance tab */
+
+.rebalance-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rebalance-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.rebalance-toolbar__modes {
+  display: flex;
+  gap: 6px;
+}
+
+.rebalance-toolbar__modes button.rebalance-mode--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.rebalance-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.rebalance-toolbar input[type="number"] {
+  width: 140px;
+}
+
+.rebalance-index-badge {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+}
+
+.rebalance-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.rebalance-empty {
+  margin: 0;
+  color: var(--warn);
+}
+
+.rebalance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rebalance-table th,
+.rebalance-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rebalance-table th {
+  background: var(--panel);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--line);
+}
+
+.rebalance-table td.num,
+.rebalance-table th.num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.rebalance-table td:nth-child(2) {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.rebalance-table tbody tr:nth-child(even) {
+  background: var(--panel-alt);
+}
+
+.rebalance-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.rebalance-actions {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 600px) {
   .history-chart,
   .sector-chart {
