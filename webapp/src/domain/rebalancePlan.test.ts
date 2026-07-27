@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectRebalanceUnits } from "./rebalancePlan";
+import { allocateBudget, collectRebalanceUnits, RebalanceUnit } from "./rebalancePlan";
 import { CalculatedPosition, Pair } from "../types";
 
 function pos(partial: Partial<CalculatedPosition> & Pick<CalculatedPosition, "ticker">): CalculatedPosition {
@@ -105,5 +105,202 @@ describe("collectRebalanceUnits", () => {
       pos({ ticker: "B", targetAllocation: 0, actualShare: 0, status: "out_of_index" }),
     ];
     expect(collectRebalanceUnits(calculated, pairs, 1000)).toEqual([]);
+  });
+});
+
+function soloUnit(over: Partial<RebalanceUnit> & Pick<RebalanceUnit, "unitId" | "shortfallRub">): RebalanceUnit {
+  const ticker = over.unitId;
+  const price = over.representativePrice ?? 100;
+  return {
+    kind: "solo",
+    targetAllocation: 10,
+    actualShare: 5,
+    representativePrice: price,
+    members: [
+      {
+        ticker,
+        price,
+        lotSize: 1,
+        sharesOwned: 0,
+        indexWeight: 10,
+        status: "in_index",
+        coefficient: 1,
+      },
+    ],
+    ...over,
+  };
+}
+
+describe("allocateBudget", () => {
+  it("splits budget proportional to shortfall then lot-rounds", () => {
+    const units = [
+      soloUnit({
+        unitId: "EXP",
+        shortfallRub: 100,
+        representativePrice: 200,
+        members: [
+          {
+            ticker: "EXP",
+            price: 200,
+            lotSize: 1,
+            sharesOwned: 0,
+            indexWeight: 1,
+            status: "in_index",
+            coefficient: 1,
+          },
+        ],
+      }),
+      soloUnit({
+        unitId: "CHEAP",
+        shortfallRub: 100,
+        representativePrice: 50,
+        members: [
+          {
+            ticker: "CHEAP",
+            price: 50,
+            lotSize: 1,
+            sharesOwned: 0,
+            indexWeight: 1,
+            status: "in_index",
+            coefficient: 1,
+          },
+        ],
+      }),
+    ];
+    const lines = allocateBudget(units, 300);
+    expect(lines.map((l) => l.ticker)).toEqual(["CHEAP"]);
+    expect(lines[0]).toMatchObject({ lots: 3, shares: 3, spendRub: 150 });
+    expect(lines.every((l) => l.lots > 0)).toBe(true);
+  });
+
+  it("processes expensive unit before cheap when both can buy", () => {
+    const units = [
+      soloUnit({
+        unitId: "CHEAP",
+        shortfallRub: 100,
+        representativePrice: 50,
+        members: [
+          {
+            ticker: "CHEAP",
+            price: 50,
+            lotSize: 1,
+            sharesOwned: 0,
+            indexWeight: 1,
+            status: "in_index",
+            coefficient: 1,
+          },
+        ],
+      }),
+      soloUnit({
+        unitId: "EXP",
+        shortfallRub: 100,
+        representativePrice: 100,
+        members: [
+          {
+            ticker: "EXP",
+            price: 100,
+            lotSize: 1,
+            sharesOwned: 0,
+            indexWeight: 1,
+            status: "in_index",
+            coefficient: 1,
+          },
+        ],
+      }),
+    ];
+    const lines = allocateBudget(units, 200);
+    expect(lines).toEqual([
+      expect.objectContaining({ ticker: "EXP", lots: 1, spendRub: 100 }),
+      expect.objectContaining({ ticker: "CHEAP", lots: 2, spendRub: 100 }),
+    ]);
+  });
+
+  it("splits pair rawRub by indexWeight*coefficient and skips out_of_index member", () => {
+    const unit: RebalanceUnit = {
+      unitId: "SBER+SBERP",
+      kind: "pair",
+      shortfallRub: 100,
+      targetAllocation: 12,
+      actualShare: 0,
+      representativePrice: 300,
+      members: [
+        {
+          ticker: "SBER",
+          price: 300,
+          lotSize: 1,
+          sharesOwned: 0,
+          indexWeight: 9,
+          status: "in_index",
+          coefficient: 1,
+        },
+        {
+          ticker: "SBERP",
+          price: 200,
+          lotSize: 1,
+          sharesOwned: 0,
+          indexWeight: 3,
+          status: "in_index",
+          coefficient: 1,
+        },
+        {
+          ticker: "GHOST",
+          price: 100,
+          lotSize: 1,
+          sharesOwned: 0,
+          indexWeight: 5,
+          status: "out_of_index",
+          coefficient: 1,
+        },
+      ],
+    };
+    const lines = allocateBudget([unit], 1200);
+    expect(lines.map((l) => l.ticker)).toEqual(["SBER", "SBERP"]);
+    expect(lines.find((l) => l.ticker === "SBER")).toMatchObject({ lots: 3, spendRub: 900 });
+    expect(lines.find((l) => l.ticker === "SBERP")).toMatchObject({ lots: 1, spendRub: 200 });
+  });
+
+  it("skips members with null or zero price", () => {
+    const units = [
+      soloUnit({
+        unitId: "DEAD",
+        shortfallRub: 100,
+        representativePrice: null,
+        members: [
+          {
+            ticker: "DEAD",
+            price: null,
+            lotSize: 1,
+            sharesOwned: 0,
+            indexWeight: 1,
+            status: "in_index",
+            coefficient: 1,
+          },
+        ],
+      }),
+    ];
+    expect(allocateBudget(units, 1000)).toEqual([]);
+  });
+
+  it("treats null lotSize as 1", () => {
+    const units = [
+      soloUnit({
+        unitId: "X",
+        shortfallRub: 100,
+        representativePrice: 10,
+        members: [
+          {
+            ticker: "X",
+            price: 10,
+            lotSize: null,
+            sharesOwned: 0,
+            indexWeight: 1,
+            status: "in_index",
+            coefficient: 1,
+          },
+        ],
+      }),
+    ];
+    const lines = allocateBudget(units, 25);
+    expect(lines[0]).toMatchObject({ lots: 2, shares: 2, spendRub: 20 });
   });
 });
