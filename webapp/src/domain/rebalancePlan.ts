@@ -481,3 +481,39 @@ export function buildRebalancePlan(input: BuildRebalancePlanInput): RebalancePla
     avgComplianceBefore,
   });
 }
+
+const PLAN_EXPORT_COLUMNS = [
+  "unitId",
+  "ticker",
+  "lots",
+  "shares",
+  "spendRub",
+  "price",
+  "lotSize",
+] as const;
+
+function planLineToRow(line: RebalancePlanLine): string[] {
+  return [
+    line.unitId,
+    line.ticker,
+    String(line.lots),
+    String(line.shares),
+    String(line.spendRub),
+    String(line.price),
+    String(line.lotSize),
+  ];
+}
+
+function planToDelimited(plan: RebalancePlan, delimiter: string): string {
+  const header = PLAN_EXPORT_COLUMNS.join(delimiter);
+  const rows = plan.lines.map((line) => planLineToRow(line).join(delimiter));
+  return `${header}\n${rows.length > 0 ? `${rows.join("\n")}\n` : ""}`;
+}
+
+export function planToTsv(plan: RebalancePlan): string {
+  return planToDelimited(plan, "\t");
+}
+
+export function planToCsv(plan: RebalancePlan): string {
+  return planToDelimited(plan, ",");
+}

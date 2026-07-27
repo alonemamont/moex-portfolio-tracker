@@ -3,6 +3,8 @@ import {
   allocateBudget,
   buildRebalancePlan,
   collectRebalanceUnits,
+  planToCsv,
+  planToTsv,
   RebalanceUnit,
 } from "./rebalancePlan";
 import { CalculatedPosition, Pair } from "../types";
@@ -512,5 +514,62 @@ describe("buildRebalancePlan min_trades", () => {
     expect(few.emptyReason).toBeNull();
     expect(count(few)).toBeGreaterThan(0);
     expect(count(few)).toBeLessThan(count(full));
+  });
+});
+
+describe("plan export", () => {
+  const gazp = pos({
+    ticker: "GAZP",
+    targetAllocation: 50,
+    actualShare: 0,
+    compliance: 0,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 0,
+    indexWeight: 50,
+    positionValue: 0,
+    status: "in_index",
+  });
+  const filler = pos({
+    ticker: "LKOH",
+    targetAllocation: 50,
+    actualShare: 50,
+    compliance: 1,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 5,
+    indexWeight: 50,
+    positionValue: 500,
+    status: "in_index",
+  });
+
+  const exportInput = {
+    calculated: [gazp, filler],
+    pairs: [] as Pair[],
+    portfolioValue: 1000,
+    budgetRub: 500,
+    mode: "budget" as const,
+  };
+
+  it("planToTsv includes header and tab-separated rows", () => {
+    const plan = buildRebalancePlan(exportInput);
+    expect(plan.lines.length).toBeGreaterThan(0);
+    const text = planToTsv(plan);
+    const rows = text.trimEnd().split("\n");
+    expect(rows[0]).toBe("unitId\tticker\tlots\tshares\tspendRub\tprice\tlotSize");
+    expect(rows.length).toBe(1 + plan.lines.length);
+    expect(rows[1].split("\t")[1]).toBe(plan.lines[0].ticker);
+  });
+
+  it("planToCsv uses commas", () => {
+    const plan = buildRebalancePlan(exportInput);
+    expect(planToCsv(plan).split("\n")[0]).toBe(
+      "unitId,ticker,lots,shares,spendRub,price,lotSize"
+    );
+  });
+
+  it("header-only when plan has no lines", () => {
+    const plan = buildRebalancePlan({ ...exportInput, budgetRub: 0 });
+    expect(planToTsv(plan)).toBe("unitId\tticker\tlots\tshares\tspendRub\tprice\tlotSize\n");
   });
 });
