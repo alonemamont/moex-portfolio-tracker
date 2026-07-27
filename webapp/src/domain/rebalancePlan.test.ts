@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { allocateBudget, collectRebalanceUnits, RebalanceUnit } from "./rebalancePlan";
+import {
+  allocateBudget,
+  buildRebalancePlan,
+  collectRebalanceUnits,
+  RebalanceUnit,
+} from "./rebalancePlan";
 import { CalculatedPosition, Pair } from "../types";
 
 function pos(partial: Partial<CalculatedPosition> & Pick<CalculatedPosition, "ticker">): CalculatedPosition {
@@ -302,5 +307,97 @@ describe("allocateBudget", () => {
     ];
     const lines = allocateBudget(units, 25);
     expect(lines[0]).toMatchObject({ lots: 2, shares: 2, spendRub: 20 });
+  });
+});
+
+describe("buildRebalancePlan budget/free_cash", () => {
+  const gazp = pos({
+    ticker: "GAZP",
+    targetAllocation: 50,
+    actualShare: 0,
+    compliance: 0,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 0,
+    indexWeight: 50,
+    positionValue: 0,
+    status: "in_index",
+  });
+  const filler = pos({
+    ticker: "LKOH",
+    targetAllocation: 50,
+    actualShare: 50,
+    compliance: 1,
+    price: 100,
+    lotSize: 1,
+    sharesOwned: 5,
+    indexWeight: 50,
+    positionValue: 500,
+    status: "in_index",
+  });
+
+  it("returns no_budget when budget is 0", () => {
+    const plan = buildRebalancePlan({
+      calculated: [gazp, filler],
+      pairs: [],
+      portfolioValue: 1000,
+      budgetRub: 0,
+      mode: "budget",
+    });
+    expect(plan.emptyReason).toBe("no_budget");
+    expect(plan.lines).toEqual([]);
+  });
+
+  it("budget and free_cash produce the same lines for the same amount", () => {
+    const input = {
+      calculated: [gazp, filler],
+      pairs: [],
+      portfolioValue: 1000,
+      budgetRub: 500,
+    };
+    const a = buildRebalancePlan({ ...input, mode: "budget" });
+    const b = buildRebalancePlan({ ...input, mode: "free_cash" });
+    expect(a.lines).toEqual(b.lines);
+    expect(a.spentTotal).toBe(b.spentTotal);
+    expect(a.emptyReason).toBeNull();
+    expect(a.spentTotal).toBeLessThanOrEqual(500);
+    expect(a.lines.every((l) => l.lots > 0)).toBe(true);
+  });
+
+  it("sets budget_too_small when nothing is affordable", () => {
+    const expensive = pos({
+      ticker: "EXP",
+      targetAllocation: 100,
+      actualShare: 0,
+      compliance: 0,
+      price: 10_000,
+      lotSize: 1,
+      sharesOwned: 0,
+      indexWeight: 100,
+      positionValue: 0,
+      status: "in_index",
+    });
+    const plan = buildRebalancePlan({
+      calculated: [expensive],
+      pairs: [],
+      portfolioValue: 1,
+      budgetRub: 100,
+      mode: "budget",
+    });
+    expect(plan.emptyReason).toBe("budget_too_small");
+    expect(plan.lines).toEqual([]);
+  });
+
+  it("reports avgComplianceAfter >= avgComplianceBefore when buys fill a shortfall", () => {
+    const plan = buildRebalancePlan({
+      calculated: [gazp, filler],
+      pairs: [],
+      portfolioValue: 1000,
+      budgetRub: 500,
+      mode: "budget",
+    });
+    expect(plan.avgComplianceBefore).not.toBeNull();
+    expect(plan.avgComplianceAfter).not.toBeNull();
+    expect(plan.avgComplianceAfter!).toBeGreaterThanOrEqual(plan.avgComplianceBefore!);
   });
 });

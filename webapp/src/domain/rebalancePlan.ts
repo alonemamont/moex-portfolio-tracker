@@ -1,4 +1,10 @@
-import { computeDeviationRub } from "./calculations";
+import {
+  computeAverageCompliance,
+  computeActualShare,
+  computeCompliance,
+  computeDeviationRub,
+  computePairedTargets,
+} from "./calculations";
 import { CalculatedPosition, Pair } from "../types";
 
 export type RebalanceMode = "budget" | "free_cash" | "min_trades";
@@ -213,4 +219,220 @@ export function allocateBudget(units: RebalanceUnit[], budgetRub: number): Rebal
   }
 
   return out;
+}
+
+export interface RebalancePlan {
+  mode: RebalanceMode;
+  budgetRub: number;
+  lines: RebalancePlanLine[];
+  spentTotal: number;
+  leftoverRub: number;
+  avgComplianceBefore: number | null;
+  avgComplianceAfter: number | null;
+  tradeCount: number;
+  emptyReason: RebalanceEmptyReason | null;
+  shortfallRubAfterByUnitId: Record<string, number>;
+}
+
+export interface BuildRebalancePlanInput {
+  calculated: CalculatedPosition[];
+  pairs: Pair[];
+  portfolioValue: number;
+  budgetRub: number;
+  mode: RebalanceMode;
+  complianceGainThreshold?: number;
+}
+
+function sharesAfterByTicker(
+  calculated: CalculatedPosition[],
+  lines: RebalancePlanLine[]
+): Map<string, number> {
+  const shares = new Map(calculated.map((p) => [p.ticker, p.sharesOwned] as const));
+  for (const line of lines) {
+    shares.set(line.ticker, (shares.get(line.ticker) ?? 0) + line.shares);
+  }
+  return shares;
+}
+
+function simulateAvgCompliance(
+  calculated: CalculatedPosition[],
+  pairs: Pair[],
+  sharesAfter: Map<string, number>,
+  portfolioValueAfter: number
+): number | null {
+  const byTicker = new Map(calculated.map((p) => [p.ticker, p] as const));
+  const pairByTicker = new Map<string, Pair>();
+  for (const pair of pairs) {
+    for (const ticker of pair.tickers) pairByTicker.set(ticker, pair);
+  }
+
+  const pairedTargetsByPair = new Map<Pair, ReturnType<typeof computePairedTargets>>();
+  for (const pair of pairs) {
+    const memberInputs = pair.tickers
+      .map((ticker) => {
+        const p = byTicker.get(ticker);
+        if (!p) return null;
+        return {
+          ticker,
+          indexWeight: p.indexWeight,
+          status: p.status,
+          price: p.price,
+          sharesOwned: sharesAfter.get(ticker) ?? p.sharesOwned,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+    pairedTargetsByPair.set(pair, computePairedTargets(pair, memberInputs, portfolioValueAfter));
+  }
+
+  const compliances: (number | null)[] = [];
+  for (const p of calculated) {
+    const pair = pairByTicker.get(p.ticker);
+    if (pair) {
+      compliances.push(pairedTargetsByPair.get(pair)!.compliance);
+    } else {
+      const shares = sharesAfter.get(p.ticker) ?? p.sharesOwned;
+      const positionValue = (p.price ?? 0) * shares;
+      const actualShare = computeActualShare(positionValue, portfolioValueAfter);
+      compliances.push(computeCompliance(actualShare, p.targetAllocation));
+    }
+  }
+  return computeAverageCompliance(compliances);
+}
+
+function shortfallRubAfterByUnitId(
+  units: RebalanceUnit[],
+  pairs: Pair[],
+  calculated: CalculatedPosition[],
+  sharesAfter: Map<string, number>,
+  portfolioValueAfter: number
+): Record<string, number> {
+  const byTicker = new Map(calculated.map((p) => [p.ticker, p] as const));
+  const out: Record<string, number> = {};
+
+  for (const unit of units) {
+    if (unit.kind === "solo") {
+      const member = unit.members[0];
+      const p = byTicker.get(member.ticker);
+      const price = member.price ?? p?.price ?? 0;
+      const shares = sharesAfter.get(member.ticker) ?? member.sharesOwned;
+      const actualShare = computeActualShare(price * shares, portfolioValueAfter);
+      const deviationRub = computeDeviationRub(actualShare, unit.targetAllocation, portfolioValueAfter);
+      out[unit.unitId] = deviationRub === null ? 0 : Math.max(0, -deviationRub);
+      continue;
+    }
+
+    const pair = pairs.find((p) => p.tickers.join("+") === unit.unitId);
+    if (!pair) {
+      out[unit.unitId] = unit.shortfallRub;
+      continue;
+    }
+    const memberInputs = pair.tickers
+      .map((ticker) => {
+        const p = byTicker.get(ticker);
+        if (!p) return null;
+        return {
+          ticker,
+          indexWeight: p.indexWeight,
+          status: p.status,
+          price: p.price,
+          sharesOwned: sharesAfter.get(ticker) ?? p.sharesOwned,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+    const paired = computePairedTargets(pair, memberInputs, portfolioValueAfter);
+    const deviationRub = computeDeviationRub(
+      paired.actualShare,
+      paired.targetAllocation,
+      portfolioValueAfter
+    );
+    out[unit.unitId] = deviationRub === null ? 0 : Math.max(0, -deviationRub);
+  }
+
+  return out;
+}
+
+interface FinalizePlanInput {
+  mode: RebalanceMode;
+  budgetRub: number;
+  lines: RebalancePlanLine[];
+  calculated: CalculatedPosition[];
+  pairs: Pair[];
+  portfolioValue: number;
+  units: RebalanceUnit[];
+  avgComplianceBefore: number | null;
+}
+
+function finalizePlan(input: FinalizePlanInput): RebalancePlan {
+  const { mode, budgetRub, lines, calculated, pairs, portfolioValue, units, avgComplianceBefore } =
+    input;
+  const spentTotal = lines.reduce((s, l) => s + l.spendRub, 0);
+  const leftoverRub = budgetRub - spentTotal;
+  const portfolioValueAfter = portfolioValue + spentTotal;
+  const sharesAfter = sharesAfterByTicker(calculated, lines);
+  const avgComplianceAfter = simulateAvgCompliance(
+    calculated,
+    pairs,
+    sharesAfter,
+    portfolioValueAfter
+  );
+
+  return {
+    mode,
+    budgetRub,
+    lines,
+    spentTotal,
+    leftoverRub,
+    avgComplianceBefore,
+    avgComplianceAfter,
+    tradeCount: lines.length,
+    emptyReason: null,
+    shortfallRubAfterByUnitId: shortfallRubAfterByUnitId(
+      units,
+      pairs,
+      calculated,
+      sharesAfter,
+      portfolioValueAfter
+    ),
+  };
+}
+
+export function buildRebalancePlan(input: BuildRebalancePlanInput): RebalancePlan {
+  const { calculated, pairs, portfolioValue, budgetRub, mode } = input;
+  const avgComplianceBefore = computeAverageCompliance(calculated.map((p) => p.compliance));
+
+  const empty = (reason: RebalanceEmptyReason): RebalancePlan => ({
+    mode,
+    budgetRub,
+    lines: [],
+    spentTotal: 0,
+    leftoverRub: Math.max(0, budgetRub),
+    avgComplianceBefore,
+    avgComplianceAfter: avgComplianceBefore,
+    tradeCount: 0,
+    emptyReason: reason,
+    shortfallRubAfterByUnitId: {},
+  });
+
+  if (budgetRub <= 0) return empty("no_budget");
+
+  const units = collectRebalanceUnits(calculated, pairs, portfolioValue);
+  if (units.length === 0) return empty("no_shortfall");
+
+  if (mode === "min_trades") {
+    return empty("threshold_not_met");
+  }
+
+  const lines = allocateBudget(units, budgetRub);
+  if (lines.length === 0) return empty("budget_too_small");
+
+  return finalizePlan({
+    mode,
+    budgetRub,
+    lines,
+    calculated,
+    pairs,
+    portfolioValue,
+    units,
+    avgComplianceBefore,
+  });
 }
